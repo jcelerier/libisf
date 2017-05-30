@@ -4,6 +4,8 @@
 #include <vector>
 #include <sstream>
 #include <array>
+#include <regex>
+#include <iostream>
 #include <unordered_map>
 #include "sajson.h"
 namespace isf
@@ -245,7 +247,7 @@ const std::unordered_map<std::string, root_fun>& root_parse{
                      return inp;
                  }});
                 i.insert(
-                {"point3D", [] (const sajson::value& v) -> input {
+                {"color", [] (const sajson::value& v) -> input {
                      color_input inp;
                      parse_input(inp, v);
                      return inp;
@@ -310,7 +312,7 @@ struct create_val_visitor
     }
     std::string operator()(const image_input& i)
     {
-        return "uniform sampler2d " + i.name + ";";
+        return "uniform sampler2D " + i.name + ";";
     }
 };
 
@@ -354,12 +356,31 @@ void parser::parse()
     for(auto& val : d.inputs)
     {
         shader += std::visit(create_val_visitor{}, val);
+        shader += '\n';
     }
 
-    shader += "uniform vec2 RENDERSIZE;";
-    shader += "uniform float TIME;";
+    shader += "uniform int PASSINDEX;\n";
+    shader += "uniform vec2 RENDERSIZE;\n";
+    shader += "uniform float TIME;\n";
+    shader += "uniform float TIMEDELTA;\n";
+    shader += "uniform vec4 DATE;\n";
+    shader += "varying vec2 isf_FragNormCoord;\n";
+
+    std::regex img_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
+    m_source = std::regex_replace(m_source, img_pixel, "texture2D($1, isf_FragNormCoord)");
     shader.append(m_source.begin() + end + 2, m_source.end());
     m_fragment.push_back(shader);
+
+    m_vertex.push_back(R"_(
+    attribute vec2 position;
+    uniform vec2 RENDERSIZE;
+    varying vec2 isf_FragNormCoord;
+
+    void main(void) {
+      gl_Position = vec4( position, 0.0, 1.0 );
+      isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
+    }
+    )_");
 }
 
 }
