@@ -12,6 +12,12 @@ public:
     using std::runtime_error::runtime_error;
 };
 
+struct event_input
+{
+    std::string name;
+    std::string label;
+};
+
 struct bool_input
 {
     using value_type = bool;
@@ -69,7 +75,7 @@ struct image_input
     std::string label;
 };
 
-using input = std::variant<float_input, bool_input, color_input, point2d_input, point3d_input, image_input>;
+using input = std::variant<float_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input>;
 
 struct descriptor
 {

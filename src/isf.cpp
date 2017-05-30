@@ -87,6 +87,28 @@ static void parse_input(image_input &inp, const sajson::value &v)
     }
 }
 
+static void parse_input(event_input &inp, const sajson::value &v)
+{
+    std::size_t N = v.get_length();
+
+    for(std::size_t i = 0; i < N; i++)
+    {
+        auto k = v.get_object_key(i).as_string();
+        if(k == "NAME")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_STRING)
+                inp.name = val.as_string();
+        }
+        else if(k == "LABEL")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_STRING)
+                inp.label = val.as_string();
+        }
+    }
+}
+
 template<typename Input_T, typename std::enable_if_t<Input_T::has_minmax::value>* = nullptr>
 static void parse_input(Input_T& inp, const sajson::value& v)
 {
@@ -199,6 +221,12 @@ const std::unordered_map<std::string, root_fun>& root_parse{
                      return inp;
                  }});
                 i.insert(
+                {"event", [] (const sajson::value& v) -> input {
+                     event_input inp;
+                     parse_input(inp, v);
+                     return inp;
+                 }});
+                i.insert(
                 {"image", [] (const sajson::value& v) -> input {
                      image_input inp;
                      parse_input(inp, v);
@@ -259,6 +287,10 @@ struct create_val_visitor
     std::string operator()(const float_input& i)
     {
         return "uniform float " + i.name + ";";
+    }
+    std::string operator()(const event_input& i)
+    {
+        return "uniform bool " + i.name + ";";
     }
     std::string operator()(const bool_input& i)
     {
