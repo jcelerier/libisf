@@ -3,12 +3,13 @@ import CreativeControls 1.0
 import QtQuick.Controls 2.1 as QC
 import QtQuick.Layouts 1.1
 import QtQuick.Window 2.2
-Window
+Rectangle
 {
-    visible: true
-    width: 800
-    height: 800
 
+    color: "black"
+    objectName: "rect"
+
+/*
     Rectangle {
         id: editor
         objectName: "editor"
@@ -33,13 +34,5 @@ Window
 
         }
     }
-
-    Rectangle {
-        id: rect
-        color: "black"
-        x: parent.width / 2
-        width: parent.width / 2
-        height: parent.height
-        objectName: "rect"
-    }
+*/
 }

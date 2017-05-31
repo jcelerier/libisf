@@ -7,7 +7,7 @@ add_library(isf
     src/isf.hpp
     src/isf.cpp
 )
-find_package(Qt5 COMPONENTS Quick)
+find_package(Qt5 COMPONENTS Quick QuickWidgets)
 set(CMAKE_AUTOMOC ON)
 add_executable(editor
     examples/editor.cpp
@@ -15,4 +15,5 @@ add_executable(editor
     examples/Editor.qml
 )
 
-target_link_libraries(editor PRIVATE isf Qt5::Quick)
+target_link_libraries(editor PRIVATE isf Qt5::Quick Qt5::QuickWidgets)
+target_compile_options(editor PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare)
