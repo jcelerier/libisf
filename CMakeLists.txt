@@ -8,6 +8,8 @@ add_library(isf
     src/isf.cpp
 )
 find_package(Qt5 COMPONENTS Quick QuickWidgets)
+find_package(KF5TextEditor NO_MODULE)
+
 set(CMAKE_AUTOMOC ON)
 add_executable(editor
     examples/editor.cpp
@@ -15,5 +17,5 @@ add_executable(editor
     examples/Editor.qml
 )
 
-target_link_libraries(editor PRIVATE isf Qt5::Quick Qt5::QuickWidgets)
+target_link_libraries(editor PRIVATE isf Qt5::Quick Qt5::QuickWidgets KF5::TextEditor)
 target_compile_options(editor PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare)

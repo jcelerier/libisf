@@ -1,14 +1,18 @@
 #pragma once
+#include "../src/isf.hpp"
 
+#include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQmlProperty>
-#include <QQmlApplicationEngine>
 #include <QSGNode>
-#include <QTextEdit>
-#include <QSGSimpleMaterialShader>
 #include <QVBoxLayout>
-#include <boost/algorithm/string/replace.hpp>
-#include "../src/isf.hpp"
+#include <QSGSimpleMaterialShader>
+#include <QOpenGLTexture>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
+#include <KTextEditor/Document>
+#include <KTextEditor/Editor>
+#include <KTextEditor/View>
 namespace isf
 {
 using value_type = std::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
@@ -138,11 +142,14 @@ struct create_control_visitor
 
 class Shader final : public QSGMaterialShader
 {
+    QOpenGLTexture             m_texture;
+
 public:
     Shader(std::string vert, std::string frag, descriptor d)
         : m_vertex{std::move(vert)}
         , m_fragment{std::move(frag)}
         , m_desc{std::move(d)}
+        , m_texture{ QImage("/home/jcelerier/Images/poules.png") }
     {
     }
 
@@ -190,10 +197,7 @@ private:
     int m_id_matrix;
 };
 
-struct State
-{
-    std::vector<value_type> values;
-};
+using State = std::vector<value_type>;
 
 class Material final : public QSGMaterial
 {
@@ -248,8 +252,6 @@ class ShaderItem final : public QQuickItem
 {
     Q_OBJECT
 
-    Q_PROPERTY(QString vertexShader READ vertexShader WRITE setVertexShader NOTIFY vertexShaderChanged)
-    Q_PROPERTY(QString fragmentShader READ fragmentShader WRITE setFragmentShader NOTIFY fragmentShaderChanged)
 public:
     ShaderItem()
     {
@@ -409,17 +411,6 @@ public slots:
         update();
     }
 
-    void setFragmentShader(QString fragmentShader)
-    {
-        if (m_fragmentShader == fragmentShader)
-            return;
-
-        m_fragmentShader = fragmentShader;
-        m_fragmentDirty = true;
-        emit fragmentShaderChanged(m_fragmentShader);
-        update();
-    }
-
 private:
     ShaderNode* makeNode()
     {
@@ -449,7 +440,7 @@ private:
         if(n)
         {
             QSGGeometry::updateTexturedRectGeometry(n->geometry(), boundingRect(), QRectF(0, 0, 1, 1));
-            static_cast<Material*>(n->material())->state().values = m_variables;
+            static_cast<Material*>(n->material())->state() = m_variables;
             n->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);
         }
         return n;
@@ -543,19 +534,24 @@ struct Edit : public QWidget
 {
     Q_OBJECT
     QVBoxLayout m_lay;
-    QTextEdit m_edit;
+    KTextEditor::Editor *m_edit = KTextEditor::Editor::instance();
+    KTextEditor::Document *m_doc = m_edit->createDocument(this);
+    KTextEditor::View *m_view = m_doc->createView(this);
 public:
     Edit(QWidget* parent)
         : QWidget{parent}
         , m_lay{this}
     {
-        m_lay.addWidget(&m_edit);
-
-        connect(&m_edit, &QTextEdit::textChanged, this,
-                [=] { shaderChanged(m_edit.document()->toPlainText()); });
+        // create a new document
+        // create a widget to display the document
+        m_lay.addWidget(m_view);
+        m_doc->setHighlightingMode("GLSL");
+        connect(m_doc, &KTextEditor::Document::textChanged, this,
+                [=] (auto) { shaderChanged(m_doc->text()); });
     }
 
-    QString shader() const { return m_edit.document()->toPlainText(); }
+    void setShader(QString s) { m_doc->setText(s); }
+    QString shader() const { return m_doc->text(); }
 signals:
     void shaderChanged(QString);
 };
