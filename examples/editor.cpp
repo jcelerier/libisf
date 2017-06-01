@@ -25,36 +25,65 @@ int main(int argc, char** argv)
     l.addWidget(&qw);
     qw.setResizeMode(QQuickWidget::SizeRootObjectToView);
 
-
     QQuickItem* rect = qw.rootObject();
-    isf::ShaderEditor se{ed, *rect, *qw.engine()};
-    //QQuickItem* root = e.rootObjects()[0]->findChild<QQuickItem*>("editor");
-    QTimer::singleShot(10, [&] {
 
-    auto item = new isf::Item;
+    auto item = new isf::ShaderItem;
     item->setVertexShader(R"_(attribute highp vec2 position;
                           uniform vec2 RENDERSIZE;
                           varying vec2 isf_FragNormCoord;
                           uniform highp mat4 qt_Matrix;
 
-                         void main() {
-                             gl_Position = qt_Matrix * vec4( position, 0.0, 1.0 );
-                             isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
-                         })_");
+                          void main() {
+                          gl_Position = qt_Matrix * vec4( position, 0.0, 1.0 );
+                          isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
+                          })_");
     item->setFragmentShader(R"_(
-                            uniform lowp float qt_Opacity;
-                             varying vec2 isf_FragNormCoord;
+                            varying vec2 isf_FragNormCoord;
                             void main(void)
                             {
-                               gl_FragColor = vec4(isf_FragNormCoord.x, isf_FragNormCoord.y, 0.5, qt_Opacity);
+                            gl_FragColor = vec4(isf_FragNormCoord.x, isf_FragNormCoord.y, 0.5, 1.);
                             })_");
     item->setParentItem(rect);
     QObject::connect(rect, &QQuickItem::widthChanged, item, [=] { item->setWidth(rect->width()); });
     QObject::connect(rect, &QQuickItem::heightChanged, item, [=] { item->setHeight(rect->height()); });
     item->setWidth(rect->width());
     item->setHeight(rect->height());
-    });
+
+    isf::ShaderEditor se{ed, *item, *rect, *qw.engine()};
+    se.setShader(ed.shader());
+
     w.show();
     return app.exec();
 
+}
+
+uintptr_t isf::Material::m_ptr = 0;
+
+void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMaterial *newMaterial, QSGMaterial *oldMaterial)
+{
+    if (state.isMatrixDirty())
+        program()->setUniformValue(m_id_matrix, state.combinedMatrix());
+
+    State& ns = static_cast<Material*>(newMaterial)->state();
+
+
+    const int N = m_uniforms.size();
+
+    if(ns.values.size() == N)
+    {
+        for(int i = 0; i < N; i++)
+        {
+            std::visit([=] (const auto& val) {
+                const auto u = m_uniforms[i];
+                if(u >= 0)
+                {
+                     program()->setUniformValue(u, val);
+                }
+            }, ns.values[i]);
+        }
+    }
+    else
+    {
+        qDebug()<< "fuck" <<  ns.values.size() << N;
+    }
 }
