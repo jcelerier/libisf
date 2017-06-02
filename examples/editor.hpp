@@ -542,6 +542,8 @@ public:
         : QWidget{parent}
         , m_lay{this}
     {
+
+        // Note: see  https://api.kde.org/frameworks/ktexteditor/html/classKTextEditor_1_1ConfigInterface.htm
         // create a new document
         // create a widget to display the document
         m_lay.addWidget(m_view);
