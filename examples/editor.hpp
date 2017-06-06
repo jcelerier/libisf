@@ -6,10 +6,13 @@
 #include <QQmlProperty>
 #include <QSGNode>
 #include <QVBoxLayout>
+#include <QFileInfo>
 #include <QSGSimpleMaterialShader>
 #include <QOpenGLTexture>
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
+#include <QAbstractVideoSurface>
+#include <QImageReader>
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
 #include <KTextEditor/View>
@@ -133,7 +136,7 @@ struct create_control_visitor
                       stickX: %7;
                       stickY: %8;
 
-                      onStickXChanged: console.log(minX, maxX, minY, maxY, stickX, stickY, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
+                      onStickXChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
                       onStickYChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
                     }
                   )_").arg(index).arg(label.isEmpty() ? prop : label)
@@ -172,7 +175,7 @@ public:
         : m_vertex{std::move(vert)}
         , m_fragment{std::move(frag)}
         , m_desc{std::move(d)}
-        , m_texture{ QImage("/home/jcelerier/Images/poules.png") }
+        , m_texture{ QImage("/home/jcelerier/Images/poules.png").mirrored() }
     {
     }
 
@@ -182,14 +185,25 @@ public:
 
         m_id_matrix = program()->uniformLocation("qt_Matrix");
         if (m_id_matrix < 0) {
-            qFatal("QSGSimpleMaterialShader does not implement 'uniform highp mat4 %s;' in its vertex shader",
-                   "qt_Matrix");
+            qDebug() << "QSGSimpleMaterialShader does not implement 'uniform highp mat4 %s;' in its vertex shader",
+                   "qt_Matrix";
         }
 
         for(const isf::input& inp : m_desc.inputs)
         {
             auto cstr = inp.name.c_str();
             m_uniforms.push_back(program()->uniformLocation(cstr));
+        }
+    }
+
+    void setTexture(QImage m)
+    {
+        if(!m.isNull())
+        {
+            m_texture.destroy();
+            m_texture.create();
+            m_texture.setMipLevels(1);
+            m_texture.setData(std::move(m).mirrored());
         }
     }
 
@@ -242,10 +256,12 @@ public:
 
     const State& state() const { return m_state; }
     State& state() { return m_state; }
+    QImage& texture() { return m_tex; }
 
 private:
     mutable QSGMaterialType m_type;
     State m_state;
+    QImage m_tex;
 
     std::string m_vertex;
     std::string m_fragment;
@@ -266,6 +282,19 @@ public:
 private:
     QSGGeometry m_geometry;
     Material m_mater;
+};
+
+class VideoReader : public QAbstractVideoSurface
+{
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
+    {
+        return {QVideoFrame::Format_RGB565};
+    }
+
+    bool present(const QVideoFrame &frame)
+    {
+        return true;
+    }
 };
 
 class ShaderItem final : public QQuickItem
@@ -310,6 +339,34 @@ public:
     int m_timeDelta{-1};
     int m_passIndex{-1};
     int m_date{-1};
+
+    void setImage(QFile& f)
+    {
+        QImageReader img(&f);
+
+        m_image = img.read();
+        m_imageChanged = true;
+
+    }
+    void setVideo(QFile& f)
+    {
+
+    }
+
+    void setTexture(QFile& f)
+    {
+        auto ext = QFileInfo(f).completeSuffix().toLower();
+        QSet<QString> images{"jpg", "jpeg", "png", "bmp", "gif"};
+        QSet<QString> videos{"mp4", "avi", "mkv"};
+        if(images.contains(ext))
+        {
+            setImage(f);
+        }
+        else if(videos.contains(ext))
+        {
+            setVideo(f);
+        }
+    }
 
     void setData(QString fragment, const isf::descriptor& d)
     {
@@ -456,7 +513,13 @@ private:
         if(n)
         {
             QSGGeometry::updateTexturedRectGeometry(n->geometry(), boundingRect(), QRectF(0, 0, 1, 1));
-            static_cast<Material*>(n->material())->state() = m_variables;
+            auto mat =static_cast<Material*>(n->material());
+            mat->state() = m_variables;
+            if(m_imageChanged)
+            {
+                mat->texture() = m_image;
+                m_imageChanged = false;
+            }
             n->markDirty(QSGNode::DirtyGeometry | QSGNode::DirtyMaterial);
         }
         return n;
@@ -466,11 +529,15 @@ private:
 
     QString m_vertexShader;
     QString m_fragmentShader;
+
     descriptor m_desc;
     std::atomic_bool m_vertexDirty{false};
     std::atomic_bool m_fragmentDirty{false};
 
     std::vector<value_type> m_variables;
+
+    QImage m_image;
+    bool m_imageChanged{};
 };
 
 

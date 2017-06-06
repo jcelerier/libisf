@@ -7,6 +7,8 @@
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QQuickWidget>
+#include <QFileDialog>
+#include <QPushButton>
 #include "editor.hpp"
 
 int main(int argc, char** argv)
@@ -17,9 +19,13 @@ int main(int argc, char** argv)
     QHBoxLayout l(&c);
     w.setCentralWidget(&c);
 
+    QVBoxLayout left;
+    QPushButton loadFile{"Load"};
     isf::Edit ed{&c};
     ed.setMaximumWidth(500);
-    l.addWidget(&ed);
+    left.addWidget(&loadFile);
+    left.addWidget(&ed);
+    l.addLayout(&left);
 
     QQuickWidget qw;
 
@@ -66,6 +72,14 @@ void main(void)
     item.setWidth(rect->width());
     item.setHeight(rect->height());
 
+    QObject::connect(&loadFile, &QPushButton::clicked, [&] {
+        auto file = QFileDialog::getOpenFileName(nullptr, "Load file", {}, {}, {});
+        QFile f(file);
+        if(f.exists())
+        {
+            item.setTexture(f);
+        }
+    });
     isf::ShaderEditor se{ed, item, *rect, *qw.engine()};
     se.setShader(ed.shader());
 
@@ -81,7 +95,8 @@ void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMa
     if (state.isMatrixDirty())
         program()->setUniformValue(m_id_matrix, state.combinedMatrix());
 
-    State& ns = static_cast<Material*>(newMaterial)->state();
+    auto mat = static_cast<Material*>(newMaterial);
+    State& ns = mat->state();
 
     const int N = m_uniforms.size();
 
@@ -98,7 +113,17 @@ void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMa
             }, ns[i]);
         }
     }
-
-    m_texture.allocateStorage();
+    if(oldMaterial)
+    {
+        auto oldmat = static_cast<Material*>(oldMaterial);
+        if(oldmat->texture() != mat->texture())
+        {
+            setTexture(mat->texture());
+        }
+    }
+    else
+    {
+        setTexture(mat->texture());
+    }
     m_texture.bind(0);
 }
