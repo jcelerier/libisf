@@ -95,12 +95,67 @@ static bool parse_input_impl(sajson::value &v, bool)
     return v.get_type() == sajson::TYPE_TRUE;
 }
 
-static void parse_input(image_input &inp, const sajson::value &v)
+static void parse_input(image_input& inp, const sajson::value& v)
 {
 }
 
-static void parse_input(event_input &inp, const sajson::value &v)
+static void parse_input(event_input& inp, const sajson::value& v)
 {
+}
+
+static void parse_input(long_input& inp, const sajson::value& v)
+{
+    std::size_t N = v.get_length();
+
+    for(std::size_t i = 0; i < N; i++)
+    {
+        auto k = v.get_object_key(i).as_string();
+        if(k == "VALUES")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_ARRAY)
+            {
+                const std::size_t N = val.get_length();
+                inp.values.reserve(N);
+                for(std::size_t i = 0; i < N; i++)
+                {
+                    auto arr_value = val.get_array_element(i);
+                    if(arr_value.get_type() == sajson::TYPE_INTEGER)
+                    {
+                        inp.values.push_back(arr_value.get_integer_value());
+                    }
+                }
+            }
+        }
+        else if(k == "LABELS")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_ARRAY)
+            {
+                const std::size_t N = val.get_length();
+                inp.labels.reserve(N);
+                for(std::size_t i = 0; i < N; i++)
+                {
+                    auto arr_value = val.get_array_element(i);
+                    if(arr_value.get_type() == sajson::TYPE_STRING)
+                    {
+                        inp.labels.push_back(arr_value.as_string());
+                    }
+                }
+            }
+        }
+        else if(k == "DEFAULT")
+        {
+            auto val = v.get_object_value(i);
+            inp.def = parse_input_impl(val, int64_t{});
+        }
+    }
+    auto min_size = std::min(inp.labels.size(), inp.values.size());
+    inp.def = std::min(inp.def, min_size - 1);
+    if(inp.labels.size() < min_size)
+        inp.labels.resize(min_size);
+    if(inp.values.size() < min_size)
+        inp.values.resize(min_size);
 }
 
 template<typename Input_T, typename std::enable_if_t<Input_T::has_minmax::value>* = nullptr>
@@ -302,8 +357,14 @@ void parser::parse()
     shader += "uniform vec4 DATE;\n";
     shader += "varying vec2 isf_FragNormCoord;\n";
 
-    std::regex img_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
-    m_source = std::regex_replace(m_source, img_pixel, "texture2D($1, isf_FragNormCoord)");
+    std::regex img_this_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
+    m_source = std::regex_replace(m_source, img_this_pixel, "texture2D($1, isf_FragNormCoord)");
+    std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");
+    m_source = std::regex_replace(m_source, img_pixel, "texture2D($1)");
+    std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
+    m_source = std::regex_replace(m_source, img_norm_pixel, "texture2D($1)");
+    std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
+    m_source = std::regex_replace(m_source, img_this_norm_pixel, "texture2D($1, isf_FragNormCoord)");
     shader.append(m_source.begin() + end + 2, m_source.end());
     m_fragment.push_back(shader);
 

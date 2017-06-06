@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     w.setCentralWidget(&c);
 
     isf::Edit ed{&c};
-    ed.setMaximumWidth(400);
+    ed.setMaximumWidth(500);
     l.addWidget(&ed);
 
     QQuickWidget qw;
@@ -101,9 +101,4 @@ void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMa
 
     m_texture.allocateStorage();
     m_texture.bind(0);
-    auto tex =program()->uniformLocation("inputImage");
-    qDebug() << tex;
-    if(tex >= 0)
-    {
-    }
 }

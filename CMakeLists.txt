@@ -14,7 +14,6 @@ set(CMAKE_AUTOMOC ON)
 add_executable(editor
     examples/editor.cpp
     examples/editor.hpp
-    examples/Editor.qml
 )
 
 target_link_libraries(editor PRIVATE isf Qt5::Quick Qt5::QuickWidgets KF5::TextEditor)

@@ -43,19 +43,44 @@ struct create_control_visitor
     {
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
+        QString model = "[";
+        QString values = "[";
+        for(int i = 0; i < t.labels.size(); i++)
+        {
+            const auto& label_i = t.labels[i];
+            auto val_i = QString::number(t.values[i]);
+
+            // Text
+            if(!label_i.empty())
+                model += '"' + QString::fromStdString(label_i) + '"';
+            else
+                model += '"' + val_i + '"';
+
+            // Value
+            values += val_i;
+
+            if(i != t.labels.size() - 1)
+            {
+                model += ", ";
+                values += ", ";
+            }
+        }
+        model += "]";
+        values += "]";
+
         return QString(R"_(
                     Text {
                       text: '%2';
                       color: 'white';
                     }
-                    Slider {
-                      mapFunc: function(v) { return %3 + v * (%4 - %3) };
-                      initialValue: (%5 - %3) / (%4 - %3);
-                      orientation: Qt.horizontal;
+                    QC.ComboBox {
+                      model: %3;
+                      property var values: %4;
+                      currentIndex: %5;
                       height: 30;
-                      onValueChanged: s.shader.setControl(%1, value);
+                      onCurrentIndexChanged: s.shader.setControl(%1, values[currentIndex]);
                     }
-                  )_").arg(index).arg(label.isEmpty() ? prop : label).arg(t.min).arg(t.max).arg(t.def);
+                  )_").arg(index).arg(label.isEmpty() ? prop : label).arg(model).arg(values).arg(t.def);
     }
     QString operator()(const bool_input& t)
     {
@@ -107,13 +132,14 @@ struct create_control_visitor
                       property real maxY: %6;
                       stickX: %7;
                       stickY: %8;
-                      onStickXChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
+
+                      onStickXChanged: console.log(minX, maxX, minY, maxY, stickX, stickY, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
                       onStickYChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
                     }
                   )_").arg(index).arg(label.isEmpty() ? prop : label)
-                .arg(t.min[0]).arg(t.max[0])
-                .arg(t.min[1]).arg(t.max[1])
-                .arg(t.def[0]).arg(t.def[1]);
+                .arg(t.min? (*t.min)[0] : 0.).arg(t.max ? (*t.max)[0] : 1.)
+                .arg(t.min? (*t.min)[1] : 0.).arg(t.max ? (*t.max)[1] : 1.)
+                .arg(t.def? (*t.def)[0] : 0.5).arg(t.def ? (*t.def)[0] : 0.5);
     }
     QString operator()(const point3d_input& i)
     {
@@ -137,13 +163,10 @@ struct create_control_visitor
     {
         return {};
     }
-
 };
 
 class Shader final : public QSGMaterialShader
 {
-    QOpenGLTexture             m_texture;
-
 public:
     Shader(std::string vert, std::string frag, descriptor d)
         : m_vertex{std::move(vert)}
@@ -179,19 +202,16 @@ public:
     }
 
     const char* vertexShader() const override
-    {
-        return m_vertex.c_str();
-    }
+    { return m_vertex.c_str(); }
 
     const char* fragmentShader() const override
-    {
-        return m_fragment.c_str();
-    }
+    { return m_fragment.c_str(); }
 
 private:
     std::string m_vertex;
     std::string m_fragment;
     const descriptor m_desc;
+    QOpenGLTexture m_texture;
     std::vector<int> m_uniforms;
     mutable QVector<const char*> m_attrs;
     int m_id_matrix;
@@ -255,6 +275,7 @@ class ShaderItem final : public QQuickItem
 public:
     ShaderItem()
     {
+        setAntialiasing(true);
         setFlag(ItemHasContents, true);
         connect(this, &QQuickItem::heightChanged,
                 this, [=] {
@@ -276,8 +297,8 @@ public:
         m_variables[m_time] = m_curTime;
         m_variables[m_timeDelta] = 0.008f;
         m_variables[m_renderSize] = QVector2D{(float)width(), (float)height()};
-        update();
         // TODO date
+        update();
     }
 
     std::optional<int> m_timer;
@@ -289,6 +310,7 @@ public:
     int m_timeDelta{-1};
     int m_passIndex{-1};
     int m_date{-1};
+
     void setData(QString fragment, const isf::descriptor& d)
     {
         if(m_timer)
@@ -313,7 +335,6 @@ public:
         const auto N = m_desc.inputs.size();
         m_variables.resize(N);
 
-
         struct set_default_visitor
         {
             value_type& val;
@@ -328,8 +349,15 @@ public:
             void operator()(const point2d_input& i)
             {
                 QVector2D arr;
-                arr[0] = i.def[0];
-                arr[1] = i.def[1];
+                if(i.def)
+                {
+                    arr[0] = (*i.def)[0];
+                    arr[1] = (*i.def)[1];
+                }
+                else
+                {
+                    arr = {0.5, 0.5};
+                }
                 val = arr;
             }
             void operator()(const point3d_input& i)
@@ -362,23 +390,8 @@ public:
 
         m_fragmentShader = fragment;
         m_fragmentDirty = true;
-        emit fragmentShaderChanged(m_fragmentShader);
         update();
     }
-
-    QString vertexShader() const
-    {
-        return m_vertexShader;
-    }
-
-    QString fragmentShader() const
-    {
-        return m_fragmentShader;
-    }
-
-signals:
-    void vertexShaderChanged(QString vertexShader);
-    void fragmentShaderChanged(QString fragmentShader);
 
 public slots:
     void setControl(int res, QVariant v)
@@ -387,10 +400,13 @@ public slots:
         {
             switch(v.type())
             {
+            case QVariant::Bool: m_variables[res] = (GLint)v.toBool(); break;
             case QVariant::Int: m_variables[res] = (GLint)v.toInt(); break;
             case QVariant::LongLong: m_variables[res] = (GLint)v.toLongLong(); break;
             case QVariant::Double: m_variables[res] = (GLfloat)v.toDouble(); break;
             case QVariant::Color: m_variables[res] = v.value<QColor>(); break;
+            case QVariant::Point: m_variables[res] = QVector2D{v.toPoint()}; break;
+            case QVariant::PointF: m_variables[res] = QVector2D{v.toPointF()}; break;
             case QVariant::Vector2D: m_variables[res] = v.value<QVector2D>(); break;
             case QVariant::Vector3D: m_variables[res] = v.value<QVector3D>(); break;
             case QVariant::Vector4D: m_variables[res] = v.value<QVector4D>(); break;
@@ -407,7 +423,6 @@ public slots:
 
         m_vertexShader = vertexShader;
         m_vertexDirty = true;
-        emit vertexShaderChanged(m_vertexShader);
         update();
     }
 
@@ -418,6 +433,7 @@ private:
             return new ShaderNode{m_vertexShader.toStdString(), m_fragmentShader.toStdString(), m_desc};
         return nullptr;
     }
+
     QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
     {
         ShaderNode *n = static_cast<ShaderNode *>(node);
@@ -471,6 +487,7 @@ public:
         connect(&m_root, SIGNAL(shaderChanged(QString)),
                 this, SLOT(setShader(QString)));
     }
+
 public slots:
     void setShader(QString shader)
     {
@@ -482,6 +499,7 @@ public slots:
                     R"_(
                     import QtQuick 2.0
                     import CreativeControls 1.0
+                    import QtQuick.Controls 2.0 as QC
 
                     Container {
                       id: s
@@ -510,11 +528,16 @@ public slots:
             if(m_currentComponent)
                 m_currentComponent->deleteLater();
             m_currentComponent = (QQuickItem*)controlsComp.create();
-
-            m_currentComponent->setParentItem(&m_rect);
-            QQmlProperty shaderProp(m_currentComponent, "shader");
-            shaderProp.write(QVariant::fromValue(&m_shader));
-
+            if(m_currentComponent)
+            {
+                m_currentComponent->setParentItem(&m_rect);
+                QQmlProperty shaderProp(m_currentComponent, "shader");
+                shaderProp.write(QVariant::fromValue(&m_shader));
+            }
+            else
+            {
+                qDebug() << controlsComp.errorString();
+            }
             m_shader.setData(QString::fromStdString(s.fragment().back()), d);
 
         }
@@ -533,16 +556,11 @@ private:
 struct Edit : public QWidget
 {
     Q_OBJECT
-    QVBoxLayout m_lay;
-    KTextEditor::Editor *m_edit = KTextEditor::Editor::instance();
-    KTextEditor::Document *m_doc = m_edit->createDocument(this);
-    KTextEditor::View *m_view = m_doc->createView(this);
 public:
     Edit(QWidget* parent)
         : QWidget{parent}
         , m_lay{this}
     {
-
         // Note: see  https://api.kde.org/frameworks/ktexteditor/html/classKTextEditor_1_1ConfigInterface.htm
         // create a new document
         // create a widget to display the document
@@ -554,8 +572,15 @@ public:
 
     void setShader(QString s) { m_doc->setText(s); }
     QString shader() const { return m_doc->text(); }
+
 signals:
     void shaderChanged(QString);
+
+private:
+    QVBoxLayout m_lay;
+    KTextEditor::Editor *m_edit = KTextEditor::Editor::instance();
+    KTextEditor::Document *m_doc = m_edit->createDocument(this);
+    KTextEditor::View *m_view = m_doc->createView(this);
 };
 
 

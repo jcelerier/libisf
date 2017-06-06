@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 #include <variant>
+#include <optional>
 namespace isf
 {
 class invalid_file : public std::runtime_error
@@ -27,9 +28,9 @@ struct long_input
 {
     using value_type = int64_t;
     using has_minmax = std::true_type;
-    int64_t min{};
-    int64_t max{};
-    int64_t def{};
+    std::vector<int64_t> values;
+    std::vector<std::string> labels;
+    std::size_t def{}; // index of default value
 };
 struct float_input
 {
@@ -44,9 +45,9 @@ struct point2d_input
 {
     using value_type = std::array<double, 2>;
     using has_minmax = std::true_type;
-    std::array<double, 2> def{};
-    std::array<double, 2> min{};
-    std::array<double, 2> max{};
+    std::optional<value_type> def{};
+    std::optional<value_type> min{};
+    std::optional<value_type> max{};
 };
 
 struct point3d_input
