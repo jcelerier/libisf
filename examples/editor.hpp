@@ -185,8 +185,8 @@ public:
 
         m_id_matrix = program()->uniformLocation("qt_Matrix");
         if (m_id_matrix < 0) {
-            qDebug() << "QSGSimpleMaterialShader does not implement 'uniform highp mat4 %s;' in its vertex shader",
-                   "qt_Matrix";
+            qDebug() << "QSGSimpleMaterialShader does not implement 'uniform highp mat4 %s;' in its vertex shader"
+                     << "qt_Matrix";
         }
 
         for(const isf::input& inp : m_desc.inputs)
@@ -605,7 +605,7 @@ public slots:
             {
                 qDebug() << controlsComp.errorString();
             }
-            m_shader.setData(QString::fromStdString(s.fragment().back()), d);
+            m_shader.setData(QString::fromStdString(s.fragment()), d);
 
         }
         catch(...) {

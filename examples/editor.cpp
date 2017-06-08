@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     QVBoxLayout left;
     QPushButton loadFile{"Load"};
     isf::Edit ed{&c};
-    ed.setMaximumWidth(500);
+    ed.setMaximumWidth(700);
     left.addWidget(&loadFile);
     left.addWidget(&ed);
     l.addLayout(&left);

@@ -92,20 +92,25 @@ struct descriptor
 
 class parser
 {
-    std::string m_source;
+    std::string m_sourceVertex;
+    std::string m_sourceFragment;
 
-    std::vector<std::string> m_vertex;
-    std::vector<std::string> m_fragment;
+    std::string m_vertex;
+    std::string m_fragment;
+
     descriptor m_desc;
 
 public:
-    parser(std::string s);
+    enum class ShaderType { ISF, ShaderToy, GLSLSandBox };
+    parser(std::string frag, ShaderType = ShaderType::ISF);
 
     descriptor data() const;
-    std::vector<std::string> vertex() const;
-    std::vector<std::string> fragment() const;
+    std::string vertex() const;
+    std::string fragment() const;
 
 private:
-    void parse();
+    void parse_isf();
+    void parse_shadertoy();
+    void parse_glsl_sandbox();
 };
 }
