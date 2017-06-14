@@ -13,9 +13,15 @@
 #include <QOpenGLVertexArrayObject>
 #include <QAbstractVideoSurface>
 #include <QImageReader>
+#include <QMediaPlayer>
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
 #include <KTextEditor/View>
+#include <QCamera>
+#include <QMediaPlaylist>
+#include <memory>
+#include <mutex>
+
 namespace isf
 {
 using value_type = std::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
@@ -284,17 +290,81 @@ private:
     Material m_mater;
 };
 
-class VideoReader : public QAbstractVideoSurface
+class ImageSurface : public QAbstractVideoSurface
 {
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
+public:
+    ImageSurface(QImage& m, std::mutex& mut):
+        m_tex{m}
+      , m_mut{mut}
     {
-        return {QVideoFrame::Format_RGB565};
     }
 
-    bool present(const QVideoFrame &frame)
+private:
+
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const override
     {
+        return {QVideoFrame::Format_RGB32,QVideoFrame::Format_ARGB32};
+    }
+
+    bool present(const QVideoFrame &frame) override
+    {
+        if(frame.isValid())
+        {
+            QVideoFrame videoFrame(frame);
+            if(videoFrame.map(QAbstractVideoBuffer::ReadOnly))
+            {
+                std::lock_guard<std::mutex> l(m_mut);
+                m_tex = QImage{videoFrame.bits(), videoFrame.width(), videoFrame.height(), frame.imageFormatFromPixelFormat(frame.pixelFormat())};
+
+                videoFrame.unmap();
+            }
+        }
+        else
+        {
+            std::lock_guard<std::mutex> l(m_mut);
+            m_tex = QImage{};
+        }
+
         return true;
     }
+
+    QImage& m_tex;
+    std::mutex& m_mut;
+
+};
+
+class VideoReader : public ImageSurface
+{
+public:
+    VideoReader(QImage& m, QString vid, std::mutex& mut):
+        ImageSurface{m, mut}
+    {
+        m_pl.addMedia(QMediaContent(QUrl::fromLocalFile(vid)));
+        m_pl.setPlaybackMode(QMediaPlaylist::PlaybackMode::Loop);
+        m_player.setPlaylist(&m_pl);
+        m_player.setVideoOutput(this);
+        m_player.setMuted(true);
+        m_player.play();
+    }
+
+private:
+    QMediaPlayer m_player;
+    QMediaPlaylist m_pl;
+};
+
+
+class CamReader : public ImageSurface
+{
+public:
+    CamReader(QImage& m, std::mutex& mut):
+        ImageSurface{m, mut}
+    {
+        m_cam.setViewfinder(this);
+        m_cam.start();
+    }
+
+private:
+    QCamera m_cam;
 };
 
 class ShaderItem final : public QQuickItem
@@ -346,10 +416,17 @@ public:
 
         m_image = img.read();
         m_imageChanged = true;
+        m_video.reset();
 
     }
     void setVideo(QFile& f)
     {
+        m_video = std::make_unique<VideoReader>(m_image, QFileInfo(f).absoluteFilePath(), m_imageMutex);
+    }
+
+    void setCamera()
+    {
+        m_video = std::make_unique<CamReader>(m_image, m_imageMutex);
 
     }
 
@@ -515,8 +592,9 @@ private:
             QSGGeometry::updateTexturedRectGeometry(n->geometry(), boundingRect(), QRectF(0, 0, 1, 1));
             auto mat =static_cast<Material*>(n->material());
             mat->state() = m_variables;
-            if(m_imageChanged)
+            if(m_imageChanged || m_video)
             {
+                std::lock_guard<std::mutex> l(m_imageMutex);
                 mat->texture() = m_image;
                 m_imageChanged = false;
             }
@@ -537,6 +615,8 @@ private:
     std::vector<value_type> m_variables;
 
     QImage m_image;
+    std::mutex m_imageMutex;
+    std::unique_ptr<ImageSurface> m_video{};
     bool m_imageChanged{};
 };
 

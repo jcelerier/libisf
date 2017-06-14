@@ -24,8 +24,10 @@ int main(int argc, char** argv)
     left.addLayout(&btns);
     QPushButton loadImage{"Load Texture"};
     QPushButton loadShader{"Load Shader"};
+    QPushButton loadCamera{"Use Camera"};
     btns.addWidget(&loadImage);
     btns.addWidget(&loadShader);
+    btns.addWidget(&loadCamera);
 
     isf::Edit ed{&c};
     ed.setMaximumWidth(700);
@@ -84,6 +86,9 @@ void main(void)
         {
             item.setTexture(f);
         }
+    });
+    QObject::connect(&loadCamera, &QPushButton::clicked, [&] {
+        item.setCamera();
     });
     QObject::connect(&loadShader, &QPushButton::clicked, [&] {
         auto file = QFileDialog::getOpenFileName(nullptr, "Load file", {}, {}, {});
