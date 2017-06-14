@@ -545,14 +545,11 @@ class ShaderEditor : public QObject
 {
     Q_OBJECT
 public:
-    ShaderEditor(QObject& root, ShaderItem& shader, QQuickItem& rect, QQmlEngine& app):
-        m_root{root}
-      , m_shader{shader}
+    ShaderEditor(ShaderItem& shader, QQuickItem& rect, QQmlEngine& app):
+        m_shader{shader}
       , m_rect{rect}
       , m_app{app}
     {
-        connect(&m_root, SIGNAL(shaderChanged(QString)),
-                this, SLOT(setShader(QString)));
     }
 
 public slots:
@@ -613,7 +610,6 @@ public slots:
     }
 
 private:
-    QObject& m_root;
     ShaderItem& m_shader;
     QQuickItem& m_rect;
     QQmlEngine& m_app;

@@ -20,10 +20,15 @@ int main(int argc, char** argv)
     w.setCentralWidget(&c);
 
     QVBoxLayout left;
-    QPushButton loadFile{"Load"};
+    QHBoxLayout btns;
+    left.addLayout(&btns);
+    QPushButton loadImage{"Load Texture"};
+    QPushButton loadShader{"Load Shader"};
+    btns.addWidget(&loadImage);
+    btns.addWidget(&loadShader);
+
     isf::Edit ed{&c};
     ed.setMaximumWidth(700);
-    left.addWidget(&loadFile);
     left.addWidget(&ed);
     l.addLayout(&left);
 
@@ -72,7 +77,7 @@ void main(void)
     item.setWidth(rect->width());
     item.setHeight(rect->height());
 
-    QObject::connect(&loadFile, &QPushButton::clicked, [&] {
+    QObject::connect(&loadImage, &QPushButton::clicked, [&] {
         auto file = QFileDialog::getOpenFileName(nullptr, "Load file", {}, {}, {});
         QFile f(file);
         if(f.exists())
@@ -80,7 +85,20 @@ void main(void)
             item.setTexture(f);
         }
     });
-    isf::ShaderEditor se{ed, item, *rect, *qw.engine()};
+    QObject::connect(&loadShader, &QPushButton::clicked, [&] {
+        auto file = QFileDialog::getOpenFileName(nullptr, "Load file", {}, {}, {});
+        QFile f(file);
+        if(f.exists() && f.open(QIODevice::ReadOnly))
+        {
+            QString s = f.readAll();
+            ed.setShader(s);
+        }
+    });
+    isf::ShaderEditor se{item, *rect, *qw.engine()};
+
+    QObject::connect(&ed, &isf::Edit::shaderChanged,
+            &se, &isf::ShaderEditor::setShader);
+
     se.setShader(ed.shader());
 
     w.show();
