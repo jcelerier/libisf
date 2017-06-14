@@ -645,6 +645,4 @@ private:
     KTextEditor::Document *m_doc = m_edit->createDocument(this);
     KTextEditor::View *m_view = m_doc->createView(this);
 };
-
-
 }

@@ -143,5 +143,7 @@ void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMa
     {
         setTexture(mat->texture());
     }
-    m_texture.bind(0);
+
+    if(m_texture.isCreated())
+        m_texture.bind(0);
 }
