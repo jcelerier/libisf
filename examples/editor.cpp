@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <QQuickWidget>
 #include <QFileDialog>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include "editor.hpp"
 
@@ -32,6 +33,20 @@ int main(int argc, char** argv)
     isf::Edit ed{&c};
     ed.setMaximumWidth(700);
     left.addWidget(&ed);
+
+    QPlainTextEdit errText;
+    errText.setMaximumWidth(700);
+    errText.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+    static QPlainTextEdit& ref = errText;
+    qInstallMessageHandler([] (QtMsgType type, const QMessageLogContext& context, const QString& msg) {
+        static QStringList strlist;
+        strlist.append(msg);
+        if(strlist.size() > 2)
+            strlist.removeFirst();
+        ref.setPlainText(strlist.join("\n===============\n"));
+    });
+    left.addWidget(&errText);
+
     l.addLayout(&left);
 
     QQuickWidget qw;
@@ -127,7 +142,7 @@ void isf::Shader::updateState(const QSGMaterialShader::RenderState &state, QSGMa
     {
         for(int i = 0; i < N; i++)
         {
-            std::visit([=] (const auto& val) {
+            eggs::variants::apply([=] (const auto& val) {
                 const auto u = m_uniforms[i];
                 if(u >= 0)
                 {

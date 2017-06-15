@@ -1,6 +1,6 @@
 #include "isf.hpp"
 #include <boost/algorithm/string/replace.hpp>
-#include <string_view>
+#include <boost/utility/string_view.hpp>
 #include <vector>
 #include <sstream>
 #include <array>
@@ -327,7 +327,7 @@ void parser::parse_isf()
     // First comes the json part
     auto doc = sajson::parse(
                 sajson::dynamic_allocation(),
-                sajson::mutable_string_view((end - start - 2), m_sourceFragment.data() + start + 2));
+                sajson::mutable_string_view((end - start - 2), const_cast<char*>(m_sourceFragment.data()) + start + 2));
     if(!doc.is_valid())
     {
         std::stringstream err;
@@ -355,7 +355,7 @@ void parser::parse_isf()
     // Then the GLSL
     for(const isf::input& val : d.inputs)
     {
-        m_fragment += std::visit(create_val_visitor{}, val.data);
+        m_fragment += eggs::variants::apply(create_val_visitor{}, val.data);
         m_fragment += ' ';
         m_fragment += val.name;
         m_fragment += ";";

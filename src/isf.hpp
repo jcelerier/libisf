@@ -3,8 +3,14 @@
 #include <stdexcept>
 #include <array>
 #include <vector>
-#include <variant>
-#include <optional>
+#include <eggs/variant.hpp>
+#include <experimental/optional>
+namespace std
+{
+template<typename ... Args> using variant = eggs::variant<Args...>;
+template<typename ... Args>
+using optional = std::experimental::optional<Args...>;
+}
 namespace isf
 {
 class invalid_file : public std::runtime_error

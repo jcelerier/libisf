@@ -14,9 +14,13 @@
 #include <QAbstractVideoSurface>
 #include <QImageReader>
 #include <QMediaPlayer>
+#if defined(KTEXTEDITOR)
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
 #include <KTextEditor/View>
+#else
+#include <QPlainTextEdit>
+#endif
 #include <QCamera>
 #include <QMediaPlaylist>
 #include <memory>
@@ -517,7 +521,7 @@ public:
 
         for(std::size_t i = 0; i < N; i++)
         {
-            std::visit(set_default_visitor{m_variables[i]}, m_desc.inputs[i].data);
+            eggs::variants::apply(set_default_visitor{m_variables[i]}, m_desc.inputs[i].data);
         }
 
         m_timer = startTimer(8, Qt::TimerType::CoarseTimer);
@@ -660,7 +664,7 @@ public slots:
             int i = 0;
             for(const isf::input& inp : d.inputs)
             {
-                controls += std::visit(create_control_visitor{inp, i}, inp.data);
+                controls += eggs::variants::apply(create_control_visitor{inp, i}, inp.data);
                 i++;
             }
 
@@ -707,22 +711,39 @@ public:
         // Note: see  https://api.kde.org/frameworks/ktexteditor/html/classKTextEditor_1_1ConfigInterface.htm
         // create a new document
         // create a widget to display the document
+
+#if defined(KTEXTEDITOR)
         m_lay.addWidget(m_view);
         m_doc->setHighlightingMode("GLSL");
         connect(m_doc, &KTextEditor::Document::textChanged, this,
                 [=] (auto) { shaderChanged(m_doc->text()); });
+#else
+        m_lay.addWidget(&m_edit);
+        connect(&m_edit, &QPlainTextEdit::textChanged,
+                this,[=] () { shaderChanged(shader()); } );
+#endif
     }
 
+#if defined(KTEXTEDITOR)
     void setShader(QString s) { m_doc->setText(s); }
     QString shader() const { return m_doc->text(); }
+#else
+    void setShader(QString s) { m_edit.setPlainText(s); }
+    QString shader() const { return m_edit.document()->toPlainText(); }
+#endif
 
 signals:
     void shaderChanged(QString);
 
 private:
     QVBoxLayout m_lay;
+
+#if defined(KTEXTEDITOR)
     KTextEditor::Editor *m_edit = KTextEditor::Editor::instance();
     KTextEditor::Document *m_doc = m_edit->createDocument(this);
     KTextEditor::View *m_view = m_doc->createView(this);
+#else
+    QPlainTextEdit m_edit;
+#endif
 };
 }
