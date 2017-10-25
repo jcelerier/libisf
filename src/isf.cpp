@@ -114,6 +114,14 @@ static void parse_input(event_input& inp, const sajson::value& v)
 {
 }
 
+static void parse_input(audio_input& inp, const sajson::value& v)
+{
+}
+
+static void parse_input(audioFFT_input& inp, const sajson::value& v)
+{
+}
+
 static void parse_input(long_input& inp, const sajson::value& v)
 {
     std::size_t N = v.get_length();
@@ -224,7 +232,7 @@ input parse(const sajson::value& v)
 
 using root_fun = void(*)(descriptor&, const sajson::value&);
 using input_fun = input(*)(const sajson::value&);
-const std::unordered_map<std::string, root_fun>& root_parse{
+static const std::unordered_map<std::string, root_fun>& root_parse{
     [] {
         static std::unordered_map<std::string, root_fun> p;
         p.insert(
@@ -261,6 +269,8 @@ const std::unordered_map<std::string, root_fun>& root_parse{
                 i.insert({"point2D", [] (const auto& s) { return parse<point2d_input>(s); } });
                 i.insert({"point3D", [] (const auto& s) { return parse<point3d_input>(s); } });
                 i.insert({"color", [] (const auto& s) { return parse<color_input>(s); } });
+                i.insert({"audio", [] (const auto& s) { return parse<audio_input>(s); } });
+                i.insert({"audioFFT", [] (const auto& s) { return parse<audioFFT_input>(s); } });
 
                 return i;
             }()
@@ -312,6 +322,10 @@ struct create_val_visitor
     { return "uniform vec4"; }
     std::string operator()(const image_input&)
     { return "uniform sampler2D"; }
+    std::string operator()(const audio_input&)
+    { return "uniform sampler2D"; }
+    std::string operator()(const audioFFT_input&)
+    { return "uniform sampler2D"; }
 };
 
 void parser::parse_isf()
@@ -323,6 +337,8 @@ void parser::parse_isf()
     auto end = m_sourceFragment.find("*/", start);
     if(end == std::string::npos)
         throw invalid_file{"Unfinished comment"};
+    auto fragWithoutISF = m_sourceFragment;
+    fragWithoutISF.erase(start, end + 2);
 
     // First comes the json part
     auto doc = sajson::parse(
@@ -338,7 +354,7 @@ void parser::parse_isf()
 
     // Read the parameters
     auto root = doc.get_root();
-    if(!root.get_type() == sajson::TYPE_OBJECT)
+    if(root.get_type() != sajson::TYPE_OBJECT)
         throw invalid_file{"Not a JSON object"};
 
     descriptor d;
@@ -353,13 +369,15 @@ void parser::parse_isf()
     m_desc = d;
 
     // Then the GLSL
+    //m_fragment += "#version 130\n";
     for(const isf::input& val : d.inputs)
     {
-        m_fragment += eggs::variants::apply(create_val_visitor{}, val.data);
+        m_fragment += std::visit(create_val_visitor{}, val.data);
         m_fragment += ' ';
         m_fragment += val.name;
-        m_fragment += ";";
+        m_fragment += ";\n";
     }
+    m_fragment += "\n";
 
     m_fragment += "uniform float TIME;\n";
     m_fragment += "uniform float TIMEDELTA;\n";
@@ -371,7 +389,7 @@ void parser::parse_isf()
     m_fragment += "uniform int PASSINDEX;\n";
     m_fragment += "varying vec2 isf_FragNormCoord;\n";
 
-    m_fragment += m_sourceFragment;
+    m_fragment += fragWithoutISF;
 
     std::regex img_this_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
     std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");

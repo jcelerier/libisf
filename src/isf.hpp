@@ -3,14 +3,8 @@
 #include <stdexcept>
 #include <array>
 #include <vector>
-#include <eggs/variant.hpp>
-#include <experimental/optional>
-namespace std
-{
-template<typename ... Args> using variant = eggs::variant<Args...>;
-template<typename ... Args>
-using optional = std::experimental::optional<Args...>;
-}
+#include <optional>
+#include <variant>
 namespace isf
 {
 class invalid_file : public std::runtime_error
@@ -78,9 +72,16 @@ struct image_input
 {
 };
 
+struct audio_input
+{
+};
+struct audioFFT_input
+{
+};
+
 struct input
 {
-    using input_impl = std::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input>;
+    using input_impl = std::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input, audio_input, audioFFT_input>;
 
     std::string name;
     std::string label;
