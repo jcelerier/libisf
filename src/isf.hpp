@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <array>
 #include <vector>
-#include <optional>
+#include <boost/optional.hpp>
 #include <eggs/variant.hpp>
 namespace isf
 {
@@ -45,9 +45,9 @@ struct point2d_input
 {
     using value_type = std::array<double, 2>;
     using has_minmax = std::true_type;
-    std::optional<value_type> def{};
-    std::optional<value_type> min{};
-    std::optional<value_type> max{};
+    boost::optional<value_type> def{};
+    boost::optional<value_type> min{};
+    boost::optional<value_type> max{};
 };
 
 struct point3d_input
