@@ -25,10 +25,11 @@
 #include <QMediaPlaylist>
 #include <memory>
 #include <mutex>
+#include <eggs/variant.hpp>
 
 namespace isf
 {
-using value_type = std::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
+using value_type = eggs::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
 
 struct create_control_visitor
 {
@@ -155,6 +156,14 @@ struct create_control_visitor
                 .arg(t.def? (*t.def)[0] : 0.5).arg(t.def ? (*t.def)[0] : 0.5);
     }
     QString operator()(const point3d_input& i)
+    {
+        return {};
+    }
+    QString operator()(const audio_input& i)
+    {
+        return {};
+    }
+    QString operator()(const audioFFT_input& i)
     {
         return {};
     }
@@ -517,6 +526,10 @@ public:
             }
             void operator()(const image_input& i)
             { }
+            void operator()(const audio_input& i)
+            { }
+            void operator()(const audioFFT_input& i)
+            { }
         };
 
         for(std::size_t i = 0; i < N; i++)
@@ -572,7 +585,7 @@ private:
         return nullptr;
     }
 
-    QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
+    QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override
     {
         ShaderNode *n = static_cast<ShaderNode *>(node);
         if (!node)

@@ -19,9 +19,9 @@ add_executable(editor
     examples/editor.hpp
 )
 
-find_package(KF5TextEditor NO_MODULE REQUIRED)
+find_package(KF5TextEditor NO_MODULE)
 if(${KF5TextEditor_FOUND})
-    find_package(KF5Parts NO_MODULE REQUIRED)
+    find_package(KF5Parts NO_MODULE)
     target_link_libraries(editor PRIVATE KF5::Parts KF5::TextEditor)
     target_compile_definitions(editor PRIVATE KTEXTEDITOR)
 endif()

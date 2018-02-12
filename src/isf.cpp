@@ -372,7 +372,7 @@ void parser::parse_isf()
     //m_fragment += "#version 130\n";
     for(const isf::input& val : d.inputs)
     {
-        m_fragment += std::visit(create_val_visitor{}, val.data);
+        m_fragment += eggs::variants::apply(create_val_visitor{}, val.data);
         m_fragment += ' ';
         m_fragment += val.name;
         m_fragment += ";\n";

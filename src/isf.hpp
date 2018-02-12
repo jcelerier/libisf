@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 #include <optional>
-#include <variant>
+#include <eggs/variant.hpp>
 namespace isf
 {
 class invalid_file : public std::runtime_error
@@ -81,7 +81,7 @@ struct audioFFT_input
 
 struct input
 {
-    using input_impl = std::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input, audio_input, audioFFT_input>;
+    using input_impl = eggs::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input, audio_input, audioFFT_input>;
 
     std::string name;
     std::string label;
