@@ -544,7 +544,7 @@ public:
         update();
     }
 
-public slots:
+public Q_SLOTS:
     void setControl(int res, QVariant v)
     {
         if(res < m_variables.size())
@@ -649,7 +649,7 @@ public:
     {
     }
 
-public slots:
+public Q_SLOTS:
     void setShader(QString shader)
     {
         try {
@@ -745,7 +745,7 @@ public:
     QString shader() const { return m_edit.document()->toPlainText(); }
 #endif
 
-signals:
+Q_SIGNALS:
     void shaderChanged(QString);
 
 private:
