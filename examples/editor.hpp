@@ -14,6 +14,8 @@
 #include <QAbstractVideoSurface>
 #include <QImageReader>
 #include <QMediaPlayer>
+#include <QAudioDecoder>
+#include <QQueue>
 #if defined(KTEXTEDITOR)
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
@@ -40,18 +42,18 @@ struct create_control_visitor
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
         return QString(R"_(
-                    Text {
-                      text: '%2';
-                      color: 'white';
-                    }
-                    Slider {
-                      mapFunc: function(v) { return %3 + v * (%4 - %3) };
-                      initialValue: (%5 - %3) / (%4 - %3);
-                      orientation: Qt.horizontal;
-                      height: 30;
-                      onValueChanged: s.shader.setControl(%1, value);
-                    }
-                  )_").arg(index).arg(label.isEmpty() ? prop : label).arg(t.min).arg(t.max).arg(t.def);
+                       Text {
+                       text: '%2';
+                       color: 'white';
+                       }
+                       Slider {
+                       mapFunc: function(v) { return %3 + v * (%4 - %3) };
+                       initialValue: (%5 - %3) / (%4 - %3);
+                       orientation: Qt.horizontal;
+                       height: 30;
+                       onValueChanged: s.shader.setControl(%1, value);
+                       }
+                       )_").arg(index).arg(label.isEmpty() ? prop : label).arg(t.min).arg(t.max).arg(t.def);
     }
     QString operator()(const long_input& t)
     {
@@ -59,7 +61,7 @@ struct create_control_visitor
         auto label = QString::fromStdString(i.label);
         QString model = "[";
         QString values = "[";
-        for(int i = 0; i < t.labels.size(); i++)
+        for(std::size_t i = 0; i < t.labels.size(); i++)
         {
             const auto& label_i = t.labels[i];
             auto val_i = QString::number(t.values[i]);
@@ -83,74 +85,74 @@ struct create_control_visitor
         values += "]";
 
         return QString(R"_(
-                    Text {
-                      text: '%2';
-                      color: 'white';
-                    }
-                    QC.ComboBox {
-                      model: %3;
-                      property var values: %4;
-                      currentIndex: %5;
-                      height: 30;
-                      onCurrentIndexChanged: s.shader.setControl(%1, values[currentIndex]);
-                    }
-                  )_").arg(index).arg(label.isEmpty() ? prop : label).arg(model).arg(values).arg(t.def);
+                       Text {
+                       text: '%2';
+                       color: 'white';
+                       }
+                       QC.ComboBox {
+                       model: %3;
+                       property var values: %4;
+                       currentIndex: %5;
+                       height: 30;
+                       onCurrentIndexChanged: s.shader.setControl(%1, values[currentIndex]);
+                       }
+                       )_").arg(index).arg(label.isEmpty() ? prop : label).arg(model).arg(values).arg(t.def);
     }
     QString operator()(const bool_input& t)
     {
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
         return QString(R"_(
-                    Text {
-                      text: '%2';
-                      color: 'white';
-                    }
-                    Switch {
-                      state: %3;
-                      onStateChanged: s.shader.setControl(%1, state == 'ON');
-                    }
-                  )_").arg(index).arg(label.isEmpty() ? prop : label).arg(t.def ? "'ON'" : "'OFF'");
+                       Text {
+                       text: '%2';
+                       color: 'white';
+                       }
+                       Switch {
+                       state: %3;
+                       onStateChanged: s.shader.setControl(%1, state == 'ON');
+                       }
+                       )_").arg(index).arg(label.isEmpty() ? prop : label).arg(t.def ? "'ON'" : "'OFF'");
     }
     QString operator()(const event_input& t)
     {
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
         return QString(
-                  R"_(
+                    R"_(
                     Text {
-                      text: '%3';
-                      color: 'white';
+                    text: '%3';
+                    color: 'white';
                     }
                     Switch {
-                      id: %2_sw;
-                      ease: false;
-                      Timer { interval: 16; onTriggered: if(%2_sw.state == 'ON') %2_sw.state = 'OFF'; id: tmr }
-                      onStateChanged: { s.shader.setControl(%1, state == 'ON'); tmr.start() }
+                    id: %2_sw;
+                    ease: false;
+                    Timer { interval: 16; onTriggered: if(%2_sw.state == 'ON') %2_sw.state = 'OFF'; id: tmr }
+                    onStateChanged: { s.shader.setControl(%1, state == 'ON'); tmr.start() }
                     }
-                  )_").arg(index).arg(prop).arg(label.isEmpty() ? prop : label);
+                    )_").arg(index).arg(prop).arg(label.isEmpty() ? prop : label);
     }
     QString operator()(const point2d_input& t)
     {
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
         return QString(
-                  R"_(
+                    R"_(
                     Text {
-                      text: '%2';
-                      color: 'white';
+                    text: '%2';
+                    color: 'white';
                     }
                     XYPad {
-                      property real minX: %3;
-                      property real maxX: %4;
-                      property real minY: %5;
-                      property real maxY: %6;
-                      stickX: %7;
-                      stickY: %8;
+                    property real minX: %3;
+                    property real maxX: %4;
+                    property real minY: %5;
+                    property real maxY: %6;
+                    stickX: %7;
+                    stickY: %8;
 
-                      onStickXChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
-                      onStickYChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
+                    onStickXChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
+                    onStickYChanged: s.shader.setControl(%1, Qt.point(minX + stickX * (maxX - minX), minY + stickY * (maxY - minY)));
                     }
-                  )_").arg(index).arg(label.isEmpty() ? prop : label)
+                    )_").arg(index).arg(label.isEmpty() ? prop : label)
                 .arg(t.min? (*t.min)[0] : 0.).arg(t.max ? (*t.max)[0] : 1.)
                 .arg(t.min? (*t.min)[1] : 0.).arg(t.max ? (*t.max)[1] : 1.)
                 .arg(t.def? (*t.def)[0] : 0.5).arg(t.def ? (*t.def)[0] : 0.5);
@@ -172,14 +174,14 @@ struct create_control_visitor
         auto prop = QString::fromStdString(i.name);
         auto label = QString::fromStdString(i.label);
         return QString(R"_(
-                    Text {
-                      text: '%2';
-                      color: 'white';
-                    }
-                    RGBSlider {
-                      onColorChanged: s.shader.setControl(%1, color);
-                    }
-                   )_").arg(index).arg(label.isEmpty() ? prop : label);
+                       Text {
+                       text: '%2';
+                       color: 'white';
+                       }
+                       RGBSlider {
+                       onColorChanged: s.shader.setControl(%1, color);
+                       }
+                       )_").arg(index).arg(label.isEmpty() ? prop : label);
     }
     QString operator()(const image_input& i)
     {
@@ -312,12 +314,30 @@ public:
     {
     }
 
-private:
-
+protected:
     QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const override
     {
         return {QVideoFrame::Format_RGB32,QVideoFrame::Format_ARGB32};
     }
+
+    bool present(const std::vector<float> &frame)
+    {
+        if(frame.size() > 0)
+        {
+            {
+                std::lock_guard<std::mutex> l(m_mut);
+                m_tex = QImage{(unsigned char*)frame.data(), (int)(frame.size() / 3.), 1, QImage::Format_RGB32};
+            }
+        }
+        else
+        {
+            std::lock_guard<std::mutex> l(m_mut);
+            m_tex = QImage{};
+        }
+
+        return true;
+    }
+
 
     bool present(const QVideoFrame &frame) override
     {
@@ -343,7 +363,6 @@ private:
 
     QImage& m_tex;
     std::mutex& m_mut;
-
 };
 
 class VideoReader : public ImageSurface
@@ -380,6 +399,122 @@ private:
     QCamera m_cam;
 };
 
+class AudioReader : public ImageSurface
+{
+public:
+    AudioReader(QImage& m, QString file, std::mutex& mut):
+        ImageSurface{m, mut}
+    {
+        connect(&m_decoder, &QAudioDecoder::bufferReady,
+                this, [&] {
+            m_buffers.push_back(m_decoder.read());
+            m_started = true;
+        });
+        m_decoder.setSourceFilename(file);
+        m_decoder.start();
+
+        startTimer(16);
+    }
+
+    void timerEvent(QTimerEvent* ev) override
+    {
+        while(!m_buffers.empty() && m_currentPos + 64 > m_buffers.front().duration())
+        {
+            m_buffers.push_back(m_buffers.front());
+            m_buffers.pop_front();
+            m_currentPos = 0;
+        }
+
+        if(m_buffers.empty())
+        {
+            m_currentPos = 0;
+            return;
+        }
+
+        parseSound(m_buffers.front(), m_currentPos);
+        present(m_current);
+        m_currentPos += 64;
+    }
+
+    void parseSound(QAudioBuffer& frame, int64_t pos)
+    {
+        m_current.clear();
+        std::vector<float>& v = m_current;
+        auto f = frame.format();
+        auto n = std::min((int64_t)(pos + 64), (int64_t)frame.duration());
+        switch(f.sampleType())
+        {
+        case QAudioFormat::SampleType::Float:
+        {
+            auto dat = reinterpret_cast<const float*>(frame.data());
+            for(auto i = pos; i < n; i++)
+            {
+                v.push_back(dat[i]);
+            }
+            break;
+        }
+        case QAudioFormat::SampleType::SignedInt:
+        {
+            switch(f.sampleSize())
+            {
+            case 16:
+            {
+                auto dat = reinterpret_cast<const int16_t*>(frame.data());
+                for(auto i = pos; i < n; i++)
+                {
+                    v.push_back(dat[i] / 32768. + 0.5);
+                }
+                break;
+            }
+            case 24:
+            {
+                auto dat = reinterpret_cast<const int32_t*>(frame.data());
+                for(auto i = pos; i < n; i++)
+                {
+                    v.push_back(dat[i] / 8388608. + 0.5);
+                }
+                break;
+            }
+            }
+            break;
+        }
+        case QAudioFormat::SampleType::UnSignedInt:
+        {
+            switch(f.sampleSize())
+            {
+            case 16:
+            {
+                auto dat = reinterpret_cast<const uint16_t*>(frame.data());
+                for(auto i = pos; i < n; i++)
+                {
+                    v.push_back(dat[i] / 32768.);
+                }
+                break;
+            }
+            case 24:
+            {
+                auto dat = reinterpret_cast<const uint32_t*>(frame.data());
+                for(auto i = pos; i < n; i++)
+                {
+                    v.push_back(dat[i] / 8388608. );
+                }
+                break;
+            }
+            }
+            break;
+        }
+        }
+
+    }
+
+private:
+    QAudioDecoder m_decoder;
+    std::vector<float> m_current;
+    uint64_t m_currentPos{};
+    QQueue<QAudioBuffer> m_buffers;
+    QImage m_img;
+    bool m_started = false;
+};
 class ShaderItem final : public QQuickItem
 {
     Q_OBJECT
@@ -437,10 +572,14 @@ public:
         m_video = std::make_unique<VideoReader>(m_image, QFileInfo(f).absoluteFilePath(), m_imageMutex);
     }
 
+    void setAudio(QFile& f)
+    {
+        m_video = std::make_unique<AudioReader>(m_image, QFileInfo(f).absoluteFilePath(), m_imageMutex);
+    }
+
     void setCamera()
     {
         m_video = std::make_unique<CamReader>(m_image, m_imageMutex);
-
     }
 
     void setTexture(QFile& f)
@@ -448,6 +587,7 @@ public:
         auto ext = QFileInfo(f).completeSuffix().toLower();
         QSet<QString> images{"jpg", "jpeg", "png", "bmp", "gif"};
         QSet<QString> videos{"mp4", "avi", "mkv"};
+        QSet<QString> audios{"mp3", "wav", "flac"};
         if(images.contains(ext))
         {
             setImage(f);
@@ -455,6 +595,10 @@ public:
         else if(videos.contains(ext))
         {
             setVideo(f);
+        }
+        else if(audios.contains(ext))
+        {
+            setAudio(f);
         }
     }
 
@@ -663,14 +807,14 @@ public Q_SLOTS:
                     import QtQuick.Controls 2.0 as QC
 
                     Container {
-                      id: s
-                      height: col.childrenRect.height + 2 * radius;
-                      width: col.childrenRect.width+ 2 * radius;
+                    id: s
+                    height: col.childrenRect.height + 2 * radius;
+                    width: col.childrenRect.width+ 2 * radius;
 
-                      property var shader;
-                      Column {
-                        id: col;
-                        anchors.fill: parent;
+                    property var shader;
+                    Column {
+                    id: col;
+                    anchors.fill: parent;
 
                     )_";
 
