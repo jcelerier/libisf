@@ -16,6 +16,7 @@
 #include <QMediaPlayer>
 #include <QAudioDecoder>
 #include <QQueue>
+#include <iostream>
 #if defined(KTEXTEDITOR)
 #include <KTextEditor/Document>
 #include <KTextEditor/Editor>
@@ -196,7 +197,7 @@ public:
         : m_vertex{std::move(vert)}
         , m_fragment{std::move(frag)}
         , m_desc{std::move(d)}
-        , m_texture{ QImage("/home/jcelerier/Images/poules.png").mirrored() }
+        , m_texture{ QImage("/Users/jcelerier/tutu.png").mirrored() }
     {
     }
 
@@ -206,8 +207,7 @@ public:
 
         m_id_matrix = program()->uniformLocation("qt_Matrix");
         if (m_id_matrix < 0) {
-            qDebug() << "QSGSimpleMaterialShader does not implement 'uniform highp mat4 %s;' in its vertex shader"
-                     << "qt_Matrix";
+            qDebug() << "Shader does not implement 'uniform highp mat4 qt_Matrix;' in its vertex shader";
         }
 
         for(const isf::input& inp : m_desc.inputs)
@@ -548,7 +548,7 @@ public:
         update();
     }
 
-    std::optional<int> m_timer;
+    boost::optional<int> m_timer;
     float m_lastTime{};
     float m_curTime{};
 
