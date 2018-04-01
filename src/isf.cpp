@@ -389,7 +389,7 @@ void parser::parse_isf()
 
     // isf-specific
     m_fragment += "uniform int PASSINDEX;\n";
-    m_fragment += "out vec2 isf_FragNormCoord;\n";
+    m_fragment += "in vec2 isf_FragNormCoord;\n";
     m_fragment += "out vec4 isf_FragColor;\n";
 
     m_fragment += fragWithoutISF;
@@ -410,24 +410,24 @@ void parser::parse_isf()
     if(m_sourceVertex.empty())
     {
         m_vertex =
-        R"_(
-            in vec2 position;
-            uniform vec2 RENDERSIZE;
-            out vec2 isf_FragNormCoord;
+        R"_(#version 330
+in vec2 position;
+uniform vec2 RENDERSIZE;
+out vec2 isf_FragNormCoord;
 
-            void main(void) {
-            gl_Position = vec4( position, 0.0, 1.0 );
-            isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
+void main(void) {
+gl_Position = vec4( position, 0.0, 1.0 );
+isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
             }
         )_";
     }
     else
     {
         m_vertex =
-                R"_(
-                    in vec2 position;
-                    uniform vec2 RENDERSIZE;
-                    out vec2 isf_FragNormCoord;
+                R"_(#version 330
+in vec2 position;
+uniform vec2 RENDERSIZE;
+out vec2 isf_FragNormCoord;
                 )_";
         m_vertex += m_sourceVertex;
     }
