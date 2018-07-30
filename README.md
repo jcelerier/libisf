@@ -2,7 +2,7 @@
 
 libisf is a library for parsing [Interactive Shader Format](https://www.interactiveshaderformat.com) shaders.
 
-It comes with a visual editor to write such shaders:
+It comes with a visual editor to write and edit such shaders in real-time:
 
 ![isf editor](https://raw.githubusercontent.com/jcelerier/libisf/master/screenshot.png)
 
