@@ -1,10 +1,10 @@
 # libisf
 
-libisf is a library for parsing [Interactive Shader Format](www.interactiveshaderformat.com) shaders.
+libisf is a library for parsing [Interactive Shader Format](https://www.interactiveshaderformat.com) shaders.
 
 It comes with a visual editor to write such shaders:
 
-![isf](https://githun.com/jcelerier/libisf/tree/master/screenshot.png)
+![isf editor](https://raw.githubusercontent.com/jcelerier/libisf/master/screenshot.png)
 
 ## Dependencies
 
@@ -14,6 +14,7 @@ It comes with a visual editor to write such shaders:
 
 ### Editor
 
+* CMake
 * Qt 5
 * [KTextEditor](https://api.kde.org/frameworks/ktexteditor/html/index.html) (optional, for a nice syntax highlighting)
 * [QML Creative Controls](https://github.com/jcelerier/qml-creative-controls) (optional, to show UI controls for shaders)
