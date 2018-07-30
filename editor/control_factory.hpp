@@ -21,10 +21,9 @@ struct control_factory
                      text: '%2';
                      color: 'white';
                    }
-                   Slider {
+                   HSlider {
                      mapFunc: function(v) { return %3 + v * (%4 - %3) };
                      initialValue: (%5 - %3) / (%4 - %3);
-                     orientation: Qt.horizontal;
                      height: 30;
                      onValueChanged: s.shader.setControl(%1, value);
                    }

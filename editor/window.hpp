@@ -131,7 +131,7 @@ private:
       QString controls =
           R"_(
           import QtQuick 2.0
-          import CreativeControls 1.0
+          import com.github.jcelerier.CreativeControls 1.0
           import QtQuick.Controls 2.0 as QC
 
           Container {
