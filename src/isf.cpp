@@ -329,6 +329,7 @@ struct create_val_visitor
 void parser::parse_isf()
 {
     using namespace std::literals;
+
     auto start = m_sourceFragment.find("/*");
     if(start == std::string::npos)
         throw invalid_file{"Missing start comment"};
@@ -336,7 +337,7 @@ void parser::parse_isf()
     if(end == std::string::npos)
         throw invalid_file{"Unfinished comment"};
     auto fragWithoutISF = m_sourceFragment;
-    fragWithoutISF.erase(start, end + 2);
+    fragWithoutISF.erase(0, end + 2);
 
     // First comes the json part
     auto doc = sajson::parse(
