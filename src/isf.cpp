@@ -1,6 +1,4 @@
 #include "isf.hpp"
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/utility/string_view.hpp>
 #include <vector>
 #include <sstream>
 #include <array>

@@ -54,18 +54,18 @@ struct point3d_input
 {
     using value_type = std::array<double, 3>;
     using has_minmax = std::true_type;
-    std::array<double, 3> def{};
-    std::array<double, 3> min{};
-    std::array<double, 3> max{};
+    boost::optional<value_type> def{};
+    boost::optional<value_type> min{};
+    boost::optional<value_type> max{};
 };
 
 struct color_input
 {
     using value_type = std::array<double, 4>;
     using has_minmax = std::true_type;
-    std::array<double, 4> def{};
-    std::array<double, 4> min{};
-    std::array<double, 4> max{};
+    boost::optional<value_type> def{};
+    boost::optional<value_type> min{};
+    boost::optional<value_type> max{};
 };
 
 struct image_input
