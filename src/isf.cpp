@@ -367,6 +367,8 @@ void parser::parse_isf()
     m_desc = d;
 
     // Then the GLSL
+    m_fragment += "#version 330\n";
+
     //m_fragment += "#version 130\n";
     for(const isf::input& val : d.inputs)
     {
@@ -385,7 +387,8 @@ void parser::parse_isf()
 
     // isf-specific
     m_fragment += "uniform int PASSINDEX;\n";
-    m_fragment += "varying vec2 isf_FragNormCoord;\n";
+    m_fragment += "in vec2 isf_FragNormCoord;\n";
+    m_fragment += "out vec4 isf_FragColor;\n";
 
     m_fragment += fragWithoutISF;
 
@@ -393,33 +396,36 @@ void parser::parse_isf()
     std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");
     std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
     std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
+    std::regex gl_FragColor("gl_FragColor");
 
-    m_fragment = std::regex_replace(m_fragment, img_this_pixel, "texture2D($1, isf_FragNormCoord)");
-    m_fragment = std::regex_replace(m_fragment, img_this_norm_pixel, "texture2D($1, isf_FragNormCoord)");
-    m_fragment = std::regex_replace(m_fragment, img_pixel, "texture2D($1)");
-    m_fragment = std::regex_replace(m_fragment, img_norm_pixel, "texture2D($1)");
+
+    m_fragment = std::regex_replace(m_fragment, img_this_pixel, "texture($1, isf_FragNormCoord)");
+    m_fragment = std::regex_replace(m_fragment, img_this_norm_pixel, "texture($1, isf_FragNormCoord)");
+    m_fragment = std::regex_replace(m_fragment, img_pixel, "texture($1)");
+    m_fragment = std::regex_replace(m_fragment, img_norm_pixel, "texture($1)");
+    m_fragment = std::regex_replace(m_fragment, gl_FragColor, "isf_FragColor");
 
     if(m_sourceVertex.empty())
     {
         m_vertex =
-        R"_(
-            attribute vec2 position;
-            uniform vec2 RENDERSIZE;
-            varying vec2 isf_FragNormCoord;
+        R"_(#version 330
+in vec2 position;
+uniform vec2 RENDERSIZE;
+out vec2 isf_FragNormCoord;
 
-            void main(void) {
-            gl_Position = vec4( position, 0.0, 1.0 );
-            isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
+void main(void) {
+gl_Position = vec4( position, 0.0, 1.0 );
+isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
             }
         )_";
     }
     else
     {
         m_vertex =
-                R"_(
-                    attribute vec2 position;
-                    uniform vec2 RENDERSIZE;
-                    varying vec2 isf_FragNormCoord;
+                R"_(#version 330
+in vec2 position;
+uniform vec2 RENDERSIZE;
+out vec2 isf_FragNormCoord;
                 )_";
         m_vertex += m_sourceVertex;
     }
@@ -448,7 +454,7 @@ void parser::parse_shadertoy()
     m_fragment += "uniform vec4 MOUSE;\n";
     m_fragment += "uniform vec4 CHANNELTIME;\n";
     m_fragment += "uniform vec4 CHANNELRESOLUTION;\n";
-    m_fragment += "varying vec2 isf_FragNormCoord;\n";
+    m_fragment += "out vec2 isf_FragNormCoord;\n";
 
     m_fragment += m_sourceFragment;
 
@@ -473,9 +479,9 @@ void parser::parse_shadertoy()
             )_";
     m_vertex =
             R"_(
-            attribute vec2 position;
+            in vec2 position;
             uniform vec2 RENDERSIZE;
-            varying vec2 isf_FragNormCoord;
+            out vec2 isf_FragNormCoord;
 
             void main(void) {
             gl_Position = vec4( position, 0.0, 1.0 );
@@ -490,7 +496,7 @@ void parser::parse_glsl_sandbox()
     m_fragment += "uniform float TIME;\n";
     m_fragment += "uniform vec2 MOUSE;\n";
     m_fragment += "uniform vec2 RENDERSIZE;\n";
-    m_fragment += "varying vec2 isf_FragNormCoord;\n";
+    m_fragment += "out vec2 isf_FragNormCoord;\n";
 
     m_fragment += m_sourceFragment;
 
@@ -501,9 +507,9 @@ void parser::parse_glsl_sandbox()
 
     m_vertex =
             R"_(
-            attribute vec2 position;
+            in vec2 position;
             uniform vec2 RENDERSIZE;
-            varying vec2 isf_FragNormCoord;
+            out vec2 isf_FragNormCoord;
 
             void main(void) {
             gl_Position = vec4( position, 0.0, 1.0 );

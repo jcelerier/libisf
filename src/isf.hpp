@@ -3,8 +3,10 @@
 #include <stdexcept>
 #include <array>
 #include <vector>
+
 #include <boost/optional.hpp>
 #include <eggs/variant.hpp>
+
 namespace isf
 {
 class invalid_file : public std::runtime_error
