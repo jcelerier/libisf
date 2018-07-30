@@ -9,6 +9,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlApplicationEngine>
 #include <QDebug>
 #include <QTimer>
@@ -54,6 +55,7 @@ public:
     m_left.addWidget(&m_shaderEditor);
 
     m_errorText.setMaximumWidth(600);
+    m_errorText.setMaximumHeight(200);
     m_errorText.setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
 
     m_left.addWidget(&m_errorText);
@@ -139,7 +141,7 @@ private:
           height: col.childrenRect.height + 2 * radius;
           width: col.childrenRect.width+ 2 * radius;
 
-          property var shader;
+          property var shader: g_shaderItem;
           Column {
           id: col;
           anchors.fill: parent;
@@ -155,6 +157,7 @@ private:
 
       controls += "}}";
 
+      m_quickwidget.engine()->rootContext()->setContextProperty("g_shaderItem", &m_item);
       QQmlComponent controlsComp(m_quickwidget.engine());
       controlsComp.setData(controls.toUtf8(), QUrl{});
 
@@ -164,8 +167,6 @@ private:
       if(m_currentComponent)
       {
         m_currentComponent->setParentItem(m_quickwidget.rootObject());
-        QQmlProperty shaderProp(m_currentComponent, "shader");
-        shaderProp.write(QVariant::fromValue(&m_item));
       }
       else
       {
