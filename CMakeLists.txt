@@ -10,10 +10,7 @@ add_library(isf
     src/isf.cpp
 )
 target_include_directories(isf PUBLIC src/)
-target_link_libraries(isf PUBLIC Boost::boost)
-
 find_package(Qt5 REQUIRED COMPONENTS Quick QuickWidgets Multimedia Xml DBus)
-find_package(Boost REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)

@@ -6,7 +6,7 @@
 
 namespace isf_editor
 {
-using value_type = eggs::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
+using value_type = std::variant<bool, GLfloat, GLint, QVector2D, QVector3D, QVector4D, QColor>;
 using State = std::vector<value_type>;
 
 template<typename Material_T>
@@ -62,7 +62,7 @@ public:
     {
       for(int i = 0; i < N; i++)
       {
-        eggs::variants::apply([=] (const auto& val) {
+        std::visit([=] (const auto& val) {
           const auto u = m_uniforms[i];
           if(u >= 0)
           {

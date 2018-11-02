@@ -4,8 +4,8 @@
 #include <array>
 #include <vector>
 
-#include <boost/optional.hpp>
-#include <eggs/variant.hpp>
+#include <optional>
+#include <variant>
 
 namespace isf
 {
@@ -47,27 +47,27 @@ struct point2d_input
 {
     using value_type = std::array<double, 2>;
     using has_minmax = std::true_type;
-    boost::optional<value_type> def{};
-    boost::optional<value_type> min{};
-    boost::optional<value_type> max{};
+    std::optional<value_type> def{};
+    std::optional<value_type> min{};
+    std::optional<value_type> max{};
 };
 
 struct point3d_input
 {
     using value_type = std::array<double, 3>;
     using has_minmax = std::true_type;
-    boost::optional<value_type> def{};
-    boost::optional<value_type> min{};
-    boost::optional<value_type> max{};
+    std::optional<value_type> def{};
+    std::optional<value_type> min{};
+    std::optional<value_type> max{};
 };
 
 struct color_input
 {
     using value_type = std::array<double, 4>;
     using has_minmax = std::true_type;
-    boost::optional<value_type> def{};
-    boost::optional<value_type> min{};
-    boost::optional<value_type> max{};
+    std::optional<value_type> def{};
+    std::optional<value_type> min{};
+    std::optional<value_type> max{};
 };
 
 struct image_input
@@ -83,7 +83,7 @@ struct audioFFT_input
 
 struct input
 {
-    using input_impl = eggs::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input, audio_input, audioFFT_input>;
+    using input_impl = std::variant<float_input, long_input, event_input, bool_input, color_input, point2d_input, point3d_input, image_input, audio_input, audioFFT_input>;
 
     std::string name;
     std::string label;

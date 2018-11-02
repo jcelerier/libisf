@@ -151,7 +151,7 @@ private:
       int i = 0;
       for(const isf::input& inp : d.inputs)
       {
-        controls += eggs::variants::apply(control_factory{inp, i}, inp.data);
+        controls += std::visit(control_factory{inp, i}, inp.data);
         i++;
       }
 

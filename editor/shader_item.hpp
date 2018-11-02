@@ -178,7 +178,7 @@ public:
 
     for(std::size_t i = 0; i < N; i++)
     {
-      eggs::variants::apply(set_default_visitor{m_variables[i]}, m_desc.inputs[i].data);
+      std::visit(set_default_visitor{m_variables[i]}, m_desc.inputs[i].data);
     }
 
     m_timer = startTimer(8, Qt::TimerType::CoarseTimer);
@@ -296,7 +296,7 @@ private:
   // ISF variables
   std::vector<value_type> m_variables;
 
-  boost::optional<int> m_timer;
+  std::optional<int> m_timer;
   float m_lastTime{};
   float m_curTime{};
 
