@@ -9,26 +9,65 @@
 namespace isf
 {
 
-parser::parser(std::string s, ShaderType t):
-    m_sourceFragment{std::move(s)}
+parser::parser(
+    std::string vert,
+    std::string frag,
+    int glslVersion,
+    ShaderType t)
+  : m_sourceVertex{std::move(vert)}
+  , m_sourceFragment{std::move(frag)}
+  , m_version{glslVersion}
 {
-    switch(t)
+  static const auto is_isf = [] (const std::string& str) {
+    bool has_isf = (str.find("isf") != std::string::npos || str.find("ISF") != std::string::npos || str.find("IMG_") != std::string::npos || str.find("\"INPUTS\":") != std::string::npos);
+    if(!has_isf)
+      return false;
+
+    return str[0] == '/' && str[1] == '*';
+  };
+  static const auto is_shadertoy = [] (const std::string& str) {
+    return str.find("void mainImage(") != std::string::npos;
+  };
+  static const auto is_glslsandbox = [] (const std::string& str) {
+    return str.find("uniform float time;") != std::string::npos || str.find("glslsandbox") != std::string::npos;
+  };
+
+  switch(t)
+  {
+    case ShaderType::Autodetect:
     {
-    case ShaderType::ISF:
-        parse_isf();
-        break;
-    case ShaderType::ShaderToy:
+      if(is_shadertoy(m_sourceFragment))
         parse_shadertoy();
-        break;
-    case ShaderType::GLSLSandBox:
+      else if(is_isf(m_sourceFragment))
+        parse_isf();
+      else if(is_glslsandbox(m_sourceFragment))
         parse_glsl_sandbox();
-        break;
+      else
+        m_fragment = m_sourceFragment;
+      break;
     }
+
+    case ShaderType::ISF:
+    {
+      parse_isf();
+      break;
+    }
+    case ShaderType::ShaderToy:
+    {
+      parse_shadertoy();
+      break;
+    }
+    case ShaderType::GLSLSandBox:
+    {
+      parse_glsl_sandbox();
+      break;
+    }
+  }
 }
 
 descriptor parser::data() const
 {
-    return m_desc;
+  return m_desc;
 }
 
 std::string parser::vertex() const
@@ -368,36 +407,87 @@ void parser::parse_isf()
     m_desc = d;
 
     // Then the GLSL
-    m_fragment += "#version 330\n";
-
-    //m_fragment += "#version 130\n";
-    for(const isf::input& val : d.inputs)
+    switch(m_version)
     {
-        m_fragment += std::visit(create_val_visitor{}, val.data);
-        m_fragment += ' ';
-        m_fragment += val.name;
-        m_fragment += ";\n";
+      case 330:
+      {
+        m_fragment += "#version 330\n";
+
+        //m_fragment += "#version 130\n";
+        for(const isf::input& val : d.inputs)
+        {
+            m_fragment += std::visit(create_val_visitor{}, val.data);
+            m_fragment += ' ';
+            m_fragment += val.name;
+            m_fragment += ";\n";
+        }
+        m_fragment += "\n";
+
+        m_fragment += "uniform float TIME;\n";
+        m_fragment += "uniform float TIMEDELTA;\n";
+        m_fragment += "uniform int FRAMEINDEX;\n";
+        m_fragment += "uniform vec2 RENDERSIZE;\n";
+        m_fragment += "uniform vec4 DATE;\n";
+
+        // isf-specific
+        m_fragment += "uniform int PASSINDEX;\n";
+        m_fragment += "in vec2 isf_FragNormCoord;\n";
+        m_fragment += "out vec4 isf_FragColor;\n";
+        break;
+      }
+      case 450:
+      {
+        m_fragment += "#version 450\n";
+
+        m_fragment += R"_(
+            layout(location = 0) in vec2 isf_FragNormCoord;
+            layout(location = 0) out vec4 isf_FragColor;
+
+            // Shared uniform buffer for the whole render window
+            layout(std140, binding = 0) uniform renderer_t {
+              mat4 mvp;
+              vec2 texcoordAdjust;
+
+              vec2 RENDERSIZE;
+            };
+
+            // Time-dependent uniforms, only relevant during execution
+            layout(std140, binding = 1) uniform process_t {
+              float TIME;
+              float TIMEDELTA;
+              float PROGRESS;
+
+              int PASSINDEX;
+              int FRAMEINDEX;
+
+              vec4 DATE;
+            };
+        )_";
+
+        if(!d.inputs.empty())
+        {
+          m_fragment += "layout(std140, binding = 2) uniform material_t {\n";
+          for(const isf::input& val : d.inputs)
+          {
+              m_fragment += std::visit(create_val_visitor{}, val.data);
+              m_fragment += ' ';
+              m_fragment += val.name;
+              m_fragment += ";\n";
+          }
+          m_fragment += "};\n";
+          m_fragment += "\n";
+        }
+
+        break;
+      }
     }
-    m_fragment += "\n";
-
-    m_fragment += "uniform float TIME;\n";
-    m_fragment += "uniform float TIMEDELTA;\n";
-    m_fragment += "uniform int FRAMEINDEX;\n";
-    m_fragment += "uniform vec2 RENDERSIZE;\n";
-    m_fragment += "uniform vec4 DATE;\n";
-
-    // isf-specific
-    m_fragment += "uniform int PASSINDEX;\n";
-    m_fragment += "in vec2 isf_FragNormCoord;\n";
-    m_fragment += "out vec4 isf_FragColor;\n";
-
     m_fragment += fragWithoutISF;
 
-    std::regex img_this_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
-    std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");
-    std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
-    std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
-    std::regex gl_FragColor("gl_FragColor");
+    static const std::regex img_this_pixel("IMG_THIS_PIXEL\\((.+?)\\)");
+    static const std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");
+    static const std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
+    static const std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
+    static const std::regex gl_FragColor("gl_FragColor");
 
 
     m_fragment = std::regex_replace(m_fragment, img_this_pixel, "texture($1, isf_FragNormCoord)");
@@ -451,8 +541,9 @@ void parser::parse_shadertoy()
     m_fragment += "uniform vec2 RENDERSIZE;\n";
     m_fragment += "uniform float TIME;\n";
     m_fragment += "uniform float TIMEDELTA;\n";
+    m_fragment += "uniform float SAMPLERATE;\n";
     m_fragment += "uniform vec4 DATE;\n";
-    m_fragment += "uniform vec4 MOUSE;\n";
+    m_fragment += "uniform vec2 MOUSE;\n";
     m_fragment += "uniform vec4 CHANNELTIME;\n";
     m_fragment += "uniform vec4 CHANNELRESOLUTION;\n";
     m_fragment += "out vec2 isf_FragNormCoord;\n";
@@ -516,7 +607,7 @@ void parser::parse_glsl_sandbox()
             gl_Position = vec4( position, 0.0, 1.0 );
             isf_FragNormCoord = vec2((gl_Position.x+1.0)/2.0, (gl_Position.y+1.0)/2.0);
             }
-            )_";
+   )_";
 
 }
 

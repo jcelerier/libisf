@@ -103,6 +103,7 @@ class parser
 {
     std::string m_sourceVertex;
     std::string m_sourceFragment;
+    int m_version{450};
 
     std::string m_vertex;
     std::string m_fragment;
@@ -110,8 +111,12 @@ class parser
     descriptor m_desc;
 
 public:
-    enum class ShaderType { ISF, ShaderToy, GLSLSandBox };
-    parser(std::string frag, ShaderType = ShaderType::ISF);
+    enum class ShaderType { Autodetect, ISF, ShaderToy, GLSLSandBox };
+    parser(
+        std::string vert,
+        std::string frag,
+        int glslVersion = 450,
+        ShaderType = ShaderType::Autodetect);
 
     descriptor data() const;
     std::string vertex() const;
