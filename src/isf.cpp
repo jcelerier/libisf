@@ -365,6 +365,31 @@ struct create_val_visitor
     { return "uniform sampler2D"; }
 };
 
+struct create_val_visitor_450
+{
+  struct return_type { std::string text; bool sampler; };
+  return_type operator()(const float_input&)
+  { return {"float", false}; }
+  return_type operator()(const long_input&)
+  { return {"int", false}; }
+  return_type operator()(const event_input&)
+  { return {"bool", false}; }
+  return_type operator()(const bool_input&)
+  { return {"bool", false}; }
+  return_type operator()(const point2d_input&)
+  { return {"vec2", false}; }
+  return_type operator()(const point3d_input&)
+  { return {"vec3", false}; }
+  return_type operator()(const color_input&)
+  { return {"vec4", false}; }
+  return_type operator()(const image_input&)
+  { return {"uniform sampler2D", true}; }
+  return_type operator()(const audio_input&)
+  { return {"uniform sampler2D", true}; }
+  return_type operator()(const audioFFT_input&)
+  { return {"uniform sampler2D", true}; }
+};
+
 void parser::parse_isf()
 {
     using namespace std::literals;
@@ -440,42 +465,67 @@ void parser::parse_isf()
         m_fragment += "#version 450\n";
 
         m_fragment += R"_(
-            layout(location = 0) in vec2 isf_FragNormCoord;
-            layout(location = 0) out vec4 isf_FragColor;
+layout(location = 0) in vec2 isf_FragNormCoord;
+layout(location = 0) out vec4 isf_FragColor;
 
-            // Shared uniform buffer for the whole render window
-            layout(std140, binding = 0) uniform renderer_t {
-              mat4 mvp;
-              vec2 texcoordAdjust;
+// Shared uniform buffer for the whole render window
+layout(std140, binding = 0) uniform renderer_t {
+  mat4 mvp;
+  vec2 texcoordAdjust;
 
-              vec2 RENDERSIZE;
-            };
+  vec2 RENDERSIZE;
+};
 
-            // Time-dependent uniforms, only relevant during execution
-            layout(std140, binding = 1) uniform process_t {
-              float TIME;
-              float TIMEDELTA;
-              float PROGRESS;
+// Time-dependent uniforms, only relevant during execution
+layout(std140, binding = 1) uniform process_t {
+  float TIME;
+  float TIMEDELTA;
+  float PROGRESS;
 
-              int PASSINDEX;
-              int FRAMEINDEX;
+  int PASSINDEX;
+  int FRAMEINDEX;
 
-              vec4 DATE;
-            };
-        )_";
+  vec4 DATE;
+};
+)_";
 
         if(!d.inputs.empty())
         {
+          int binding = 3;
+          std::string samplers;
+          std::string sampler_additional_info;
           m_fragment += "layout(std140, binding = 2) uniform material_t {\n";
           for(const isf::input& val : d.inputs)
           {
-              m_fragment += std::visit(create_val_visitor{}, val.data);
+            auto [text, isSampler] = std::visit(create_val_visitor_450{}, val.data);
+
+            if(isSampler)
+            {
+              samplers += "layout(binding = ";
+              samplers += std::to_string(binding);
+              samplers += ") " ;
+              samplers += text;
+              samplers += ' ';
+              samplers += val.name;
+              samplers += ";\n";
+
+              sampler_additional_info += "vec4 _" + val.name + "_imgRect;\n";
+
+              binding++;
+            }
+            else
+            {
+              m_fragment += text;
               m_fragment += ' ';
               m_fragment += val.name;
               m_fragment += ";\n";
+            }
           }
+          m_fragment += sampler_additional_info;
           m_fragment += "};\n";
           m_fragment += "\n";
+
+          m_fragment += samplers;
         }
 
         break;

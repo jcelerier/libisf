@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.9)
 
 project(libisf CXX)
+
+option(ISF_ENABLE_EDITOR "Enable ISF editor" OFF)
+option(ISF_ENABLE_TESTS "Enable ISF tests" OFF)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -10,6 +14,12 @@ add_library(isf
     src/isf.cpp
 )
 target_include_directories(isf PUBLIC src/)
+
+if(ISF_ENABLE_TESTS)
+  add_executable(tst_glsl450 tests/glsl450)
+  add_test(tst_glsl450 tst_glsl450)
+  target_link_libraries(tst_glsl450 PRIVATE isf)
+endif()
 
 if(ISF_ENABLE_EDITOR)
   find_package(Qt5 REQUIRED COMPONENTS Quick QuickWidgets Multimedia Xml DBus)
