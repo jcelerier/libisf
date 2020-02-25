@@ -538,6 +538,7 @@ layout(std140, binding = 1) uniform process_t {
     static const std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
     static const std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
     static const std::regex gl_FragColor("gl_FragColor");
+    static const std::regex vv_Frag("vv_Frag");
 
 
     m_fragment = std::regex_replace(m_fragment, img_this_pixel, "texture($1, isf_FragNormCoord)");
@@ -545,6 +546,7 @@ layout(std140, binding = 1) uniform process_t {
     m_fragment = std::regex_replace(m_fragment, img_pixel, "texture($1)");
     m_fragment = std::regex_replace(m_fragment, img_norm_pixel, "texture($1)");
     m_fragment = std::regex_replace(m_fragment, gl_FragColor, "isf_FragColor");
+    m_fragment = std::regex_replace(m_fragment, vv_Frag, "isf_Frag");
 
     if(m_sourceVertex.empty())
     {
