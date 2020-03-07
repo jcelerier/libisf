@@ -153,10 +153,38 @@ static void parse_input(event_input& inp, const sajson::value& v)
 
 static void parse_input(audio_input& inp, const sajson::value& v)
 {
+    std::size_t N = v.get_length();
+
+    for(std::size_t i = 0; i < N; i++)
+    {
+        auto k = v.get_object_key(i).as_string();
+        if(k == "MAX")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_INTEGER)
+            {
+                inp.max = val.get_integer_value();
+            }
+        }
+    }
 }
 
 static void parse_input(audioFFT_input& inp, const sajson::value& v)
 {
+    std::size_t N = v.get_length();
+
+    for(std::size_t i = 0; i < N; i++)
+    {
+        auto k = v.get_object_key(i).as_string();
+        if(k == "MAX")
+        {
+            auto val = v.get_object_value(i);
+            if(val.get_type() == sajson::TYPE_INTEGER)
+            {
+                inp.max = val.get_integer_value();
+            }
+        }
+    }
 }
 
 static void parse_input(long_input& inp, const sajson::value& v)
@@ -537,6 +565,7 @@ layout(std140, binding = 1) uniform process_t {
     static const std::regex img_pixel("IMG_PIXEL\\((.+?)\\)");
     static const std::regex img_norm_pixel("IMG_NORM_PIXEL\\((.+?)\\)");
     static const std::regex img_this_norm_pixel("IMG_THIS_NORM_PIXEL\\((.+?)\\)");
+    static const std::regex img_size("IMG_SIZE\\((.+?)\\)");
     static const std::regex gl_FragColor("gl_FragColor");
     static const std::regex vv_Frag("vv_Frag");
 
@@ -545,6 +574,7 @@ layout(std140, binding = 1) uniform process_t {
     m_fragment = std::regex_replace(m_fragment, img_this_norm_pixel, "texture($1, isf_FragNormCoord)");
     m_fragment = std::regex_replace(m_fragment, img_pixel, "texture($1)");
     m_fragment = std::regex_replace(m_fragment, img_norm_pixel, "texture($1)");
+    m_fragment = std::regex_replace(m_fragment, img_size, "_waveImage_imgRect.zw");
     m_fragment = std::regex_replace(m_fragment, gl_FragColor, "isf_FragColor");
     m_fragment = std::regex_replace(m_fragment, vv_Frag, "isf_Frag");
 

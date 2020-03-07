@@ -76,9 +76,12 @@ struct image_input
 
 struct audio_input
 {
+    int max{};
 };
+
 struct audioFFT_input
 {
+    int max{};
 };
 
 struct input
