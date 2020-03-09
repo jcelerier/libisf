@@ -376,9 +376,9 @@ struct create_val_visitor
     std::string operator()(const long_input&)
     { return "uniform int"; }
     std::string operator()(const event_input&)
-    { return "uniform bool"; }
+    { return "uniform int"; }
     std::string operator()(const bool_input&)
-    { return "uniform bool"; }
+    { return "uniform int"; }
     std::string operator()(const point2d_input&)
     { return "uniform vec2"; }
     std::string operator()(const point3d_input&)
@@ -401,9 +401,9 @@ struct create_val_visitor_450
   return_type operator()(const long_input&)
   { return {"int", false}; }
   return_type operator()(const event_input&)
-  { return {"bool", false}; }
+  { return {"int", false}; }
   return_type operator()(const bool_input&)
-  { return {"bool", false}; }
+  { return {"int", false}; }
   return_type operator()(const point2d_input&)
   { return {"vec2", false}; }
   return_type operator()(const point3d_input&)
@@ -574,7 +574,7 @@ layout(std140, binding = 1) uniform process_t {
     m_fragment = std::regex_replace(m_fragment, img_this_norm_pixel, "texture($1, isf_FragNormCoord)");
     m_fragment = std::regex_replace(m_fragment, img_pixel, "texture($1)");
     m_fragment = std::regex_replace(m_fragment, img_norm_pixel, "texture($1)");
-    m_fragment = std::regex_replace(m_fragment, img_size, "_waveImage_imgRect.zw");
+    m_fragment = std::regex_replace(m_fragment, img_size, "$1_imgRect.zw");
     m_fragment = std::regex_replace(m_fragment, gl_FragColor, "isf_FragColor");
     m_fragment = std::regex_replace(m_fragment, vv_Frag, "isf_Frag");
 
