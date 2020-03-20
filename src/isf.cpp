@@ -365,6 +365,56 @@ static const std::unordered_map<std::string, root_fun>& root_parse{
              }
          }});
 
+         p.insert(
+         {"PASSES", [] (descriptor& d, const sajson::value& v) {
+
+              using namespace std::literals;
+              if(v.get_type() == sajson::TYPE_ARRAY)
+              {
+                  std::size_t n = v.get_length();
+                  for(std::size_t i = 0; i < n; i++)
+                  {
+                      auto obj = v.get_array_element(i);
+                      if(obj.get_type() == sajson::TYPE_OBJECT)
+                      {
+                          // PASS object
+                          pass p;
+                          auto target_k = obj.find_object_key(sajson::string("TARGET", 6));
+                          if(target_k != obj.get_length())
+                          {
+                              p.target = obj.get_object_value(target_k).as_string();
+                          }
+
+                          auto persistent_k = obj.find_object_key(sajson::string("PERSISTENT", 10));
+                          if(persistent_k != obj.get_length())
+                          {
+                            p.persistent = obj.get_object_value(persistent_k).get_type() == sajson::TYPE_TRUE;
+                          }
+
+                          auto float_k = obj.find_object_key(sajson::string("FLOAT", 5));
+                          if(float_k != obj.get_length())
+                          {
+                            p.float_storage = obj.get_object_value(float_k).get_type() == sajson::TYPE_TRUE;
+                          }
+
+                          auto width_k = obj.find_object_key(sajson::string("WIDTH", 5));
+                          if(width_k != obj.get_length())
+                          {
+                            p.width_expression = obj.get_object_value(float_k).as_string();
+                          }
+
+                          auto height_k = obj.find_object_key(sajson::string("height", 5));
+                          if(height_k != obj.get_length())
+                          {
+                            p.height_expression = obj.get_object_value(float_k).as_string();
+                          }
+
+                          d.passes.push_back(std::move(p));
+                      }
+                  }
+              }
+          }});
+
         return p;
     }()
 };
@@ -498,7 +548,7 @@ layout(location = 0) out vec4 isf_FragColor;
 
 // Shared uniform buffer for the whole render window
 layout(std140, binding = 0) uniform renderer_t {
-  mat4 mvp;
+  mat4 clipSpaceCorrMatrix;
   vec2 texcoordAdjust;
 
   vec2 RENDERSIZE;

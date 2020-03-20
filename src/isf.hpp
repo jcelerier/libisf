@@ -94,12 +94,22 @@ struct input
     input_impl data;
 };
 
+struct pass
+{
+  std::string target;
+  bool persistent{};
+  bool float_storage{};
+  std::string width_expression{};
+  std::string height_expression{};
+};
+
 struct descriptor
 {
     std::string description;
     std::string credits;
     std::vector<std::string> categories;
     std::vector<input> inputs;
+    std::vector<pass> passes;
 };
 
 class parser
